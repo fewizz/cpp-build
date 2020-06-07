@@ -6,17 +6,12 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/test/**",
                 "${workspaceFolder}/include/**",
-                "C:/msys64/mingw64/include/**"
+                "${env:MSYS2_HOME}/mingw64/include/**"
             ],
-            "defines": [
-                "_DEBUG",
-                "UNICODE",
-                "_UNICODE"
-            ],
-            "windowsSdkVersion": "10.0.18362.0",
-            "compilerPath": "C:/msys64/mingw64/bin/clang++",
+            "defines": [],
+            "compilerPath": "${env:MSYS2_HOME}/mingw64/bin/clang++",
             "cStandard": "c11",
-            "cppStandard": "c++20",
+            "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64"
         }
     ],

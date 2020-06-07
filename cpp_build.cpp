@@ -1,31 +1,28 @@
-#include "cpp_build/clang_executor.hpp"
+#include "cpp_build/clang_driver.hpp"
 #include <filesystem>
-#include <iostream>
 
 using namespace std;
 using namespace filesystem;
 
 int main(int argc,char** argv) {
-    path bin_path = path(argv[0]).parent_path();
-    path out_path = temp_directory_path() / "build_cpp.exe";
+    path bin = path(argv[0]).parent_path();
+    path share = bin.parent_path() / "share";
+    path out = temp_directory_path() / "build_cpp";
 
-    gcc_driver::executor d;
-    d.program_name = "clang++";
-    d.std = &gcc_driver::lang_std::cxx17;
-    d.include_paths.push_back("./");
-    d.input_files.push_back(
-        bin_path.parent_path() / "share/cpp_build/build_entry.cpp"
-    );
-    d.output_name = out_path.string();
-    if(d.execute())
+    clang_driver::executor comp;
+    comp.name = "clang++";
+    comp.std = &clang_driver::lang::std::cxx17;
+    comp.include_path("./");
+    comp.input_file(share / "cpp_build/build_entry.cpp");
+    comp.output = out;
+    if(comp.execute())
         terminate();
 
     cl_program_executor build;
-    build.program_name = out_path.string();
-    for_each(argv+1, argv+argc, [&](char* arg){
-        build.args.emplace_back(arg);
-    });
+    build.name = out.string();
+    build.args.insert(build.args.begin(), argv+1, argv+argc);
     if(build.execute())
         terminate();
+    
     return EXIT_SUCCESS;
 }

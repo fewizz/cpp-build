@@ -3,15 +3,13 @@
 #include "program_executor.hpp"
 #include <memory>
 #include <array>
-#include <list>
-#include <initializer_list>
 #include <algorithm>
 #include <filesystem>
 
 namespace gcc_driver {
 
 struct type_t {
-    const std::list<std::string> names;
+    const std::vector<std::string> names;
 };
 
 namespace type {
@@ -29,23 +27,25 @@ const type_t module_file{{"pcm"}};
 
 }
 
-struct language {
+struct lang_t {
     const char* name;
-    constexpr language(const char* name):name{name}{}
+    constexpr lang_t(const char* name):name{name}{}
 };
+
 namespace lang {
-constexpr language c("c"), c_header("c-header"), cxx_output("c++-output"),
+
+constexpr lang_t c("c"), c_header("c-header"), cxx_output("c++-output"),
 cxx("c++"), cxx_header("c++-header"), cxx_cpp_output("c++-cpp-output"),
 assembler("assembler"), assembler_with_cpp("assembler-with-cpp"), none("");
-}
 
-struct language_standard {
-    const language lang;
-    const std::list<std::string> names;
+struct std_t {
+    const lang_t language;
+    const ::std::vector<::std::string> names;
 };
-namespace lang_std {
 
-language_standard
+namespace std {
+
+std_t
     c89{lang::c, {"c89", "c90", "iso9899:1990"}},
     c94{lang::c, {"iso9899:199409"}},
     gnu89{lang::c, {"gnu89", "gnu90"}},
@@ -71,11 +71,15 @@ language_standard
 
     none{lang::none, {""}};
 }
+}
 
 struct executor : public cl_program_executor {
-    language lang{lang::none};
-    std::string output_name;
-    language_standard* std{&lang_std::none};
+    lang_t lang{lang::none};
+
+    // --output
+    std::filesystem::path output;
+    // --std='arg'
+    lang::std_t* std{&lang::std::none};
 
     // -B'prefix'
     std::string compiler_files;
@@ -84,18 +88,20 @@ struct executor : public cl_program_executor {
     // -working-directory='dir'
     std::filesystem::path working_directory;
 
-    std::list<std::filesystem::path> input_files;
+    std::vector<std::filesystem::path> input_files;
+    void input_file(std::filesystem::path p) { input_files.push_back(p); }
     // -Idir
-    std::list<std::filesystem::path> include_paths;
+    std::vector<std::filesystem::path> include_paths;
+    void include_path(std::filesystem::path p) { include_paths.push_back(p); }
 
     int execute() override {
         if(!working_directory.empty())
-            args.push_back("-working-directory=" + working_directory.string());
+            args.push_back("-working-directory="+working_directory.string());
         if(std)
-            args.push_back("--std=" + std->names.front());
+            args.push_back("-std=" + std->names.front());
         
-        if(!output_name.empty())
-            args.push_back("--output="+output_name);
+        if(!output.empty())
+            args.push_back("--output="+output.string());
         
         std::for_each(include_paths.begin(), include_paths.end(), [&](std::filesystem::path path){
             args.push_back("-I"+path.string());

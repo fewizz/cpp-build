@@ -10,7 +10,7 @@ struct program_executor {
 };
 
 struct cl_program_executor : public program_executor {
-    std::string program_name;
+    std::string name;
     std::vector<std::string> args;
 
     int execute() override {
@@ -22,6 +22,6 @@ struct cl_program_executor : public program_executor {
                 return s1 + " " + s2;
             }
         );
-        return std::system((program_name + " " + args_str).c_str());
+        return std::system((name + " " + args_str).c_str());
     }
 };

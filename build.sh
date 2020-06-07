@@ -1,2 +1,3 @@
 #usage: bash build.sh 'output'
-clang++ --std=c++17 -Iinclude -v -o $1 cpp_build.cpp
+echo "compiling cpp_build.cpp..."
+clang++ -std=c++17 -Iinclude -o $1 cpp_build.cpp

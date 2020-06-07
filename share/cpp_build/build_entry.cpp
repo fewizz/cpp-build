@@ -9,4 +9,5 @@ int main(int argc,char** argv) {
         args.emplace_back(argv[i]);
 
     build(args);
+    return EXIT_SUCCESS;
 }
