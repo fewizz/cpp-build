@@ -95,21 +95,33 @@ struct executor : public program_executor {
     void include_path(std::filesystem::path p) { include_paths.push_back(p); }
 
     int execute() override {
+        std::vector<std::string> _args;
+
         if(!working_directory.empty())
-            args.push_back("-working-directory="+working_directory.string());
+            _args.push_back("-working-directory="+working_directory.string());
         if(std)
-            args.push_back("-std=" + std->names.front());
+            _args.push_back("-std=" + std->names.front());
         
         if(!output.empty())
-            args.push_back("--output="+output.string());
+            _args.push_back("--output="+output.string());
         
-        std::for_each(include_paths.begin(), include_paths.end(), [&](std::filesystem::path path){
-            args.push_back("-I"+path.string());
-        });
-        std::for_each(input_files.begin(), input_files.end(), [&](std::filesystem::path path){
-            args.push_back(path.string());
-        });
-        return program_executor::execute();
+        std::for_each(
+            include_paths.begin(),
+            include_paths.end(),
+            [&](std::filesystem::path path) {
+                _args.push_back("-I"+path.string());
+            }
+        );
+        std::for_each(
+            input_files.begin(),
+            input_files.end(),
+            [&](std::filesystem::path path) {
+                _args.push_back(path.string());
+            }
+        );
+
+        _args.insert(_args.begin(), args.begin(), args.end());
+        return program_executor::execute(_args);
     }
 };
 

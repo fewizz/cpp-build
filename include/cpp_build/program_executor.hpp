@@ -10,9 +10,14 @@ struct program_executor {
     std::vector<std::string> args;
 
     virtual int execute() {
+        return execute(args);
+    }
+
+protected:
+    int execute(std::vector<std::string>& _args) {
         auto args_str = std::accumulate(
-            args.begin(),
-            args.end(),
+            _args.begin(),
+            _args.end(),
             std::string{},
             [](const auto& s1, const auto& s2) {
                 return s1 + " " + s2;

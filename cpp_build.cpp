@@ -16,7 +16,7 @@ int main(int argc,char** argv) {
         [](char ch){ return ch == '/' || ch == ':' || ch == '\\'; },
         '_'
     );
-    string exec_dir = (absolute(temp_directory_path()) / exec_name).string();
+    string exec = (absolute(temp_directory_path()) / exec_name).string();
 
     clang_driver::executor comp;
     comp.name = "clang++";
@@ -24,12 +24,12 @@ int main(int argc,char** argv) {
     comp.include_path(include);
     comp.include_path("./");
     comp.input_file(share/"cpp_build/build_entry.cpp");
-    comp.output = exec_dir;
+    comp.output = exec;
     if(comp.execute())
         terminate();
 
     program_executor build;
-    build.name = exec_dir;
+    build.name = exec;
     build.args.insert(build.args.begin(), argv+1, argv+argc);
     if(build.execute())
         terminate();
