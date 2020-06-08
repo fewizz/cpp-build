@@ -73,7 +73,7 @@ std_t
 }
 }
 
-struct executor : public cl_program_executor {
+struct executor : public program_executor {
     lang_t lang{lang::none};
 
     // --output
@@ -109,7 +109,7 @@ struct executor : public cl_program_executor {
         std::for_each(input_files.begin(), input_files.end(), [&](std::filesystem::path path){
             args.push_back(path.string());
         });
-        return cl_program_executor::execute();
+        return program_executor::execute();
     }
 };
 
