@@ -6,9 +6,9 @@
 #include <algorithm>
 #include <filesystem>
 
-namespace gcc_driver {
+namespace gcc {
 
-struct type_t {
+/*struct type_t {
     const std::vector<std::string> names;
 };
 
@@ -25,103 +25,83 @@ const type_t pp_cxx_module{{"iim"}};
 const type_t object{{"lib", "obj"}};
 const type_t module_file{{"pcm"}};
 
+}*/
+
+namespace input_type {
+
+constexpr struct t {
+    const char* name{};
+    constexpr t(const char* name):name{name}{}
+    constexpr t():name{nullptr}{}
 }
-
-struct lang_t {
-    const char* name;
-    constexpr lang_t(const char* name):name{name}{}
-};
-
-namespace lang {
-
-constexpr lang_t c("c"), c_header("c-header"), cxx_output("c++-output"),
+c("c"), c_header("c-header"), cxx_output("c++-output"),
 cxx("c++"), cxx_header("c++-header"), cxx_cpp_output("c++-cpp-output"),
-assembler("assembler"), assembler_with_cpp("assembler-with-cpp"), none("");
+assembler("assembler"), assembler_with_cpp("assembler-with-cpp");
 
-struct std_t {
-    const lang_t language;
-    const ::std::vector<::std::string> names;
-};
-
-namespace std {
-
-std_t
-    c89{lang::c, {"c89", "c90", "iso9899:1990"}},
-    c94{lang::c, {"iso9899:199409"}},
-    gnu89{lang::c, {"gnu89", "gnu90"}},
-    c99{lang::c, {"c99", "iso9899:1999", "c9x", "iso9899:199x"}},
-    gnu99{lang::c, {"gnu99", "gnu9x"}},
-    c11{lang::c, {"c11", "iso9899:2011", "c1x", "iso9899:201x"}},
-    gnu11{lang::c, {"gnu11", "gnu1x"}},
-    c17{lang::c, {"c17", "iso9899:2017", "c18", "iso9899:2018"}},
-    gnu17{lang::c, {"gnu17", "gnu18"}},
-    c2x{lang::c, {"c2x", "iso9899:2017", "c18", "iso9899:2018"}},
-    gnu2x{lang::c, {"gnu2x", "iso9899:2017", "c18", "iso9899:2018"}},
-
-    cxx98{lang::cxx, {"c++98", "c++03"}},
-    gnucxx98{lang::cxx, {"gnu++98", "gnu++03"}},
-    cxx11{lang::cxx, {"c++11", "c++0x"}},
-    gnucxx11{lang::cxx, {"gnu++11", "gnu++0x"}},
-    cxx14{lang::cxx, {"c++14", "c++1y"}},
-    gnucxx14{lang::cxx, {"gnu++14", "gnu++1y"}},
-    cxx17{lang::cxx, {"c++17", "c++1z"}},
-    gnucxx17{lang::cxx, {"gnu++17", "gnu++1z"}},
-    cxx20{lang::cxx, {"c++20", "c++2a"}},
-    gnucxx20{lang::cxx, {"gnu++20", "gnu++2a"}},
-
-    none{lang::none, {""}};
-}
 }
 
-struct executor : public program_executor {
-    lang_t lang{lang::none};
+namespace lang_std {
+    struct t {
+        std::string name;
+        operator bool() { return !name.empty(); }
+    }
+    c89{"c89"}, c94{"iso9899:199409"}, gnu89{"gnu89"},
+    c99{"c99"}, gnu99{"gnu99"}, c11{"c11"}, gnu11{"gnu11"},
+    c17{"c17"}, gnu17{"gnu17"}, c2x{"c2x"}, gnu2x{"gnu2x"},
 
-    // --output
-    std::filesystem::path output;
-    // --std='arg'
-    lang::std_t* std{&lang::std::none};
+    cxx98{"c++98"}, gnucxx98{"gnu++98"}, cxx11{"c++11"},
+    gnucxx11{"gnu++11"}, cxx14{"c++14"}, gnucxx14{"gnu++14"},
+    cxx17{"c++17"}, gnucxx17{"gnu++17"},
+    cxx20{"c++20"}, gnucxx20{"gnu++20"};
+}
 
-    // -B'prefix'
-    std::string compiler_files;
-    // --sysroot'dir'
-    std::filesystem::path system_root;
-    // -working-directory='dir'
-    std::filesystem::path working_directory;
+struct driver_executor : public program_executor {
+    input_type::t input_type;                // -x
+    std::filesystem::path output;            // --output
+    lang_std::t std;                         // --std='arg'
+    std::string compiler_files;              // -B'prefix'
+    std::filesystem::path system_root;       // --sysroot'dir'
+    std::filesystem::path working_directory; // -working-directory='dir'
+
+    driver_executor(std::string name, lang_std::t _std)
+        :program_executor{name}, std{_std}{}
 
     std::vector<std::filesystem::path> input_files;
     void input_file(std::filesystem::path p) { input_files.push_back(p); }
-    // -Idir
-    std::vector<std::filesystem::path> include_paths;
+
+    std::vector<std::filesystem::path> include_paths; // -Idir
     void include_path(std::filesystem::path p) { include_paths.push_back(p); }
 
-    int execute() override {
-        std::vector<std::string> _args;
+    driver_executor(std::string name) : program_executor{name}{};
+
+    void execute() override {
+        using namespace std;
+        vector<string> args{program_executor::args};
 
         if(!working_directory.empty())
-            _args.push_back("-working-directory="+working_directory.string());
+            args.push_back("-working-directory="+working_directory.string());
         if(std)
-            _args.push_back("-std=" + std->names.front());
+            args.push_back("-std="+std.name);
         
         if(!output.empty())
-            _args.push_back("--output="+output.string());
+            args.push_back("--output="+output.string());
         
-        std::for_each(
+        for_each(
             include_paths.begin(),
             include_paths.end(),
-            [&](std::filesystem::path path) {
-                _args.push_back("-I"+path.string());
+            [&](filesystem::path path) {
+                args.push_back("-I"+path.string());
             }
         );
-        std::for_each(
+        for_each(
             input_files.begin(),
             input_files.end(),
-            [&](std::filesystem::path path) {
-                _args.push_back(path.string());
+            [&](filesystem::path path) {
+                args.push_back(path.string());
             }
         );
 
-        _args.insert(_args.begin(), args.begin(), args.end());
-        return program_executor::execute(_args);
+        return program_executor::execute(args);
     }
 };
 

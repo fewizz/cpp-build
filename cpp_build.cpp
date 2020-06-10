@@ -1,14 +1,14 @@
 #include "cpp_build/clang_driver.hpp"
 #include <filesystem>
 #include <algorithm>
+#include <stdexcept>
 
 using namespace std;
 using namespace filesystem;
 
 int main(int argc,char** argv) {
-    path bin = path(argv[0]).parent_path();
-    path share = bin.parent_path()/"share";
-    path include = bin.parent_path()/"include";
+    path usr = path(argv[0]).parent_path().parent_path();
+
     string exec_name = current_path().string();
     replace_if(
         exec_name.begin(),
@@ -16,23 +16,18 @@ int main(int argc,char** argv) {
         [](char ch){ return ch == '/' || ch == ':' || ch == '\\'; },
         '_'
     );
-    string exec = (absolute(temp_directory_path()) / exec_name).string();
+    path exec = absolute(temp_directory_path()) / exec_name;
 
-    clang_driver::executor comp;
-    comp.name = "clang++";
-    comp.std = &clang_driver::lang::std::cxx20;
-    comp.include_path(include);
+    clang::default_cxx20_driver_executor comp;
+    comp.include_path(usr/"include");
     comp.include_path("./");
-    comp.input_file(share/"cpp_build/build_entry.cpp");
+    comp.input_file(usr/"share/cpp_build/build_entry.cpp");
     comp.output = exec;
-    if(comp.execute())
-        terminate();
+    comp();
 
-    program_executor build;
-    build.name = exec;
-    build.args.insert(build.args.begin(), argv+1, argv+argc);
-    if(build.execute())
-        terminate();
+    try {
+        program_executor{exec, {argv+1, argv+argc}}();
+    } catch(exception& e) {} //We're not interested in this.
     
     return EXIT_SUCCESS;
 }
