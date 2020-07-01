@@ -1,3 +1,3 @@
 echo "uninstalling..."
-rm -vf /usr/bin/cpp-build.exe
-rm -rvf /usr/include/cpp_build
+rm -vf $1/bin/cpp-build.exe
+rm -rvf $1/include/cpp_build

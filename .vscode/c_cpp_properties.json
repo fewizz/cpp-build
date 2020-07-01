@@ -3,6 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
+                "${env:MSYS2_HOME}/usr/include",
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/test/**",
                 "${workspaceFolder}/include/**",
@@ -10,8 +11,7 @@
             ],
             "defines": [],
             "compilerPath": "${env:MSYS2_HOME}/mingw64/bin/clang++",
-            "cStandard": "c11",
-            "cppStandard": "c++17",
+            "cppStandard": "c++20",
             "intelliSenseMode": "clang-x64"
         }
     ],

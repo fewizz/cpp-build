@@ -1,5 +1,5 @@
-bash uninstall.sh
-bash build.sh /usr/bin/cpp-build.exe
+bash uninstall.sh $1/
+bash build.sh $1/bin/cxx-exec.exe
 echo "installing..."
-cp -avr include /usr
-cp -avr share /usr
+cp -avr include $1/
+cp -avr share $1/

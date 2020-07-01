@@ -7,15 +7,15 @@
 #include <filesystem>
 #include <numeric>
 
-struct program_executor {
+struct command_executor {
     std::string name;
     std::vector<std::string> args;
 
-    program_executor(std::string name, std::vector<std::string> args = {})
-        : name{name}, args{args} {};
-
-    program_executor(std::filesystem::path path, std::vector<std::string> args = {})
-        : name{path.string()}, args{args} {};
+    command_executor (
+        std::string name,
+        std::vector<std::string> args = {}
+    )
+    : name{name}, args{args} {};
     
     virtual void execute() {
         execute(args);
@@ -35,7 +35,9 @@ protected:
                 return s1 + " " + s2;
             }
         );
+        
         std::string full_command = name + " " + args_str;
+
         if(int code = std::system(full_command.c_str())) 
             throw std::system_error(
                 code,

@@ -1,31 +1,12 @@
 #pragma once
 
-#include "program_executor.hpp"
+#include "command_executor.hpp"
 #include <memory>
 #include <array>
 #include <algorithm>
 #include <filesystem>
 
 namespace gcc {
-
-/*struct type_t {
-    const std::vector<std::string> names;
-};
-
-namespace type {
-
-const type_t c{{"c"}};
-const type_t cxx{{"C", "cc", "CC", "cp", "cpp", "CPP", "c++", "C++", "cxx", "CXX"}};
-const type_t c_header{{"h"}};
-const type_t cxx_header{{"H", "hh", "hpp"}};
-const type_t pp_c{{"i"}};
-const type_t pp_asm{{"asm"}};
-const type_t cxx_module{{"ccm", "c++m", "cppm", "cxxm"}};
-const type_t pp_cxx_module{{"iim"}};
-const type_t object{{"lib", "obj"}};
-const type_t module_file{{"pcm"}};
-
-}*/
 
 namespace input_type {
 
@@ -55,7 +36,7 @@ namespace lang_std {
     cxx20{"c++20"}, gnucxx20{"gnu++20"};
 }
 
-struct driver_executor : public program_executor {
+struct driver_executor : public command_executor {
     input_type::t input_type;                // -x
     std::filesystem::path output;            // --output
     lang_std::t std;                         // --std='arg'
@@ -63,8 +44,10 @@ struct driver_executor : public program_executor {
     std::filesystem::path system_root;       // --sysroot'dir'
     std::filesystem::path working_directory; // -working-directory='dir'
 
+    driver_executor(std::string name) : command_executor{name}{};
+
     driver_executor(std::string name, lang_std::t _std)
-        :program_executor{name}, std{_std}{}
+        :command_executor{name}, std{_std}{}
 
     std::vector<std::filesystem::path> input_files;
     void input_file(std::filesystem::path p) { input_files.push_back(p); }
@@ -72,11 +55,12 @@ struct driver_executor : public program_executor {
     std::vector<std::filesystem::path> include_paths; // -Idir
     void include_path(std::filesystem::path p) { include_paths.push_back(p); }
 
-    driver_executor(std::string name) : program_executor{name}{};
+    std::vector<std::filesystem::path> include_quote_paths; // -iquote dir
+    void include_quote_path(std::filesystem::path p) { include_quote_paths.push_back(p); }
 
     void execute() override {
         using namespace std;
-        vector<string> args{program_executor::args};
+        vector<string> args{command_executor::args};
 
         if(!working_directory.empty())
             args.push_back("-working-directory="+working_directory.string());
@@ -94,6 +78,13 @@ struct driver_executor : public program_executor {
             }
         );
         for_each(
+            include_quote_paths.begin(),
+            include_quote_paths.end(),
+            [&](filesystem::path path) {
+                args.push_back("-iquote "+path.string());
+            }
+        );
+        for_each(
             input_files.begin(),
             input_files.end(),
             [&](filesystem::path path) {
@@ -101,7 +92,7 @@ struct driver_executor : public program_executor {
             }
         );
 
-        return program_executor::execute(args);
+        return command_executor::execute(args);
     }
 };
 

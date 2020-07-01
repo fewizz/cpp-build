@@ -1,8 +1,10 @@
 #include <vector>
 #include <string>
-#include "build.cpp"
+#include <iostream>
+
+void exec(std::vector<std::string> args);
 
 int main(int argc,char** argv) {
-    build({argv+1, argv+argc});
+    exec({argv+1, argv+argc});
     return EXIT_SUCCESS;
 }
