@@ -17,12 +17,8 @@ struct command_executor {
     )
     : name{name}, args{args} {};
     
-    virtual void execute() {
+    void execute() {
         execute(args);
-    }
-
-    void operator()() {
-        execute();
     }
 
 protected:
@@ -39,13 +35,13 @@ protected:
         std::string full_command = name + " " + args_str;
 
         if(int code = std::system(full_command.c_str())) 
-            throw std::system_error(
+            throw std::system_error {
                 code,
                 std::generic_category(),
                 "program, executed with command \""
                 +full_command+
                 "\" returned exit code: "
                 +std::to_string(code)
-            );
+            };
     }
 };

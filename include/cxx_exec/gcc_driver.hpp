@@ -4,8 +4,7 @@
 #include <filesystem>
 #include <optional>
 
-namespace gcc {
-
+namespace gcc { namespace driver {
 using namespace std;
 using namespace filesystem;
 
@@ -38,7 +37,7 @@ namespace lang_stds {
     cxx20{"c++20"}, gnucxx20{"gnu++20"};
 }
 
-struct driver_executor : public command_executor {
+struct executor : protected command_executor {
     optional<input_type> input_type;   // -x
     optional<path> output;             // --output
     optional<lang_std> std;         // --std='arg'
@@ -46,9 +45,9 @@ struct driver_executor : public command_executor {
     optional<path> system_root;        // --sysroot'dir'
     optional<path> working_directory;  // -working-directory='dir'
 
-    driver_executor(string name) : command_executor{name}{};
+    executor(string name) : command_executor{name}{};
 
-    driver_executor(string name, lang_std std)
+    executor(string name, lang_std std)
         :command_executor{name}, std{std}{}
 
     vector<path> input_files;
@@ -60,7 +59,7 @@ struct driver_executor : public command_executor {
     vector<path> include_quote_paths; // -iquote dir
     void include_quote_path(path p) { include_quote_paths.push_back(p); }
 
-    void execute() override {
+    void execute() {
         vector<string> args{command_executor::args};
 
         if(working_directory)
@@ -85,4 +84,4 @@ struct driver_executor : public command_executor {
     }
 };
 
-}
+}}
