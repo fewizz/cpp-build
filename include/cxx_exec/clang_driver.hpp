@@ -6,12 +6,12 @@ namespace clang {
     using namespace gcc;
 
     struct default_cxx_driver_executor : driver_executor {
-        default_cxx_driver_executor(lang_std::t _std)
-            :driver_executor("clang++", _std){}
+        default_cxx_driver_executor(lang_std std)
+            :driver_executor("clang++", std){}
     };
 
     struct default_cxx20_driver_executor : default_cxx_driver_executor {
         default_cxx20_driver_executor()
-            :default_cxx_driver_executor(lang_std::cxx20){}
+            :default_cxx_driver_executor(lang_stds::cxx20){}
     };
 }
