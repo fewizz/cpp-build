@@ -6,20 +6,23 @@
 
 using namespace std;
 using namespace filesystem;
-using namespace clap;
 
-int main(int argc,char* argv[]) {
-    gnu_clap clap;
-    bool verbose;
-    clap.flag("verbose", verbose);
-    clap.parse(argv, argv);
-    path root = path(argv[0]).parent_path().parent_path();
+void main0(vector<string_view> args) {
+    gnu::clap clap;
+    path root = path(args[0]).parent_path().parent_path();
 
-    if(argc <= 1)
+    if(args.size() <= 1)
         throw runtime_error("c++ file not provided");
-    path cxx = absolute(path{argv[1]});
+    path cxx = absolute(path{args[1]});
     if(!exists(cxx))
         throw runtime_error("c++ file not exists");
+
+    bool verbose;
+    clap.flag("verbose", verbose);
+
+    auto delimiter_it = find(args.begin()+2, args.end(), string_view{"--"});
+
+    clap.parse(args.begin()+2, delimiter_it);
 
     string out_exe_temp_dir = cxx.string();
     replace_if(
@@ -35,15 +38,22 @@ int main(int argc,char* argv[]) {
 
     clang::driver::executor comp("clang++", clang::driver::lang_stds::cxx20);
     comp.include_quote_path(root/"include");
-    comp.input_file(argv[1]);
+    comp.input_file(cxx);
     comp.input_file(root/"share/cxx_exec/exec_entry.cpp");
-
+    comp.verbose(verbose);
     comp.output = exec_out;
     comp.execute();
 
     try {
-        command_executor{exec_out.string(), {argv+2, argv+argc}}.execute();
+        command_executor{exec_out.string(), {delimiter_it+1, args.end()}}.execute();
     } catch(...) {} //We're not interested in this.
-    
+}
+
+int main(int argc, char* argv[]) {
+    //vector<string_view> args;
+
+    //for_each(argv, argv+argc, [&](auto arg){ args.emplace_back(arg); });
+    main0(vector<string_view>{argv, argv+argc});
+
     return EXIT_SUCCESS;
 }

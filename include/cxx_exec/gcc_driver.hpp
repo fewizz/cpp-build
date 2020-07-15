@@ -38,20 +38,36 @@ namespace lang_stds {
 }
 
 struct executor : protected command_executor {
+    using command_executor::args;
+
     optional<input_type> input_type;   // -x
     optional<path> output;             // --output
-    optional<lang_std> std;         // --std='arg'
+    optional<lang_std> std;            // --std='arg'
     optional<string> compiler_files;   // -B'prefix'
     optional<path> system_root;        // --sysroot'dir'
     optional<path> working_directory;  // -working-directory='dir'
+    optional<bool> verb;            // -v
 
     executor(string name) : command_executor{name}{};
 
     executor(string name, lang_std std)
         :command_executor{name}, std{std}{}
 
-    vector<path> input_files;
-    void input_file(path p) { input_files.push_back(p); }
+    struct input_file_t {
+        enum type_t {
+            source, library
+        } type;
+        string path;
+    };
+
+    vector<input_file_t> input_files;
+
+    void input_file(path p) {
+        input_files.push_back(input_file_t{input_file_t::source, p.string()});
+    }
+    void library(string name) {
+        input_files.push_back(input_file_t{input_file_t::library, name});
+    }
 
     vector<path> include_paths; // -Idir
     void include_path(path p) { include_paths.push_back(p); }
@@ -59,9 +75,13 @@ struct executor : protected command_executor {
     vector<path> include_quote_paths; // -iquote dir
     void include_quote_path(path p) { include_quote_paths.push_back(p); }
 
+    void verbose(bool val) {verb = val;}
+
     void execute() {
         vector<string> args{command_executor::args};
 
+        if(verb && *verb)
+            args.push_back("-v");
         if(working_directory)
             args.push_back("-working-directory="+working_directory->string());
         if(std)
@@ -77,7 +97,8 @@ struct executor : protected command_executor {
             args.push_back("-iquote "+p.string());
         }
         for(auto p : input_files) {
-            args.push_back(p.string());
+            auto res = p;
+            args.push_back(p.type == input_file_t::library ? "-l"+p.path : p.path);
         }
 
         return command_executor::execute(args);
