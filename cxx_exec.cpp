@@ -15,14 +15,14 @@ void main0(vector<string_view> args) {
         throw runtime_error("c++ file not provided");
     path cxx = absolute(path{args[1]});
     if(!exists(cxx))
-        throw runtime_error("c++ file not exists");
+        throw runtime_error("c++ file doesn't exists");
 
     bool verbose;
     clap.flag("verbose", verbose);
 
-    auto delimiter_it = find(args.begin()+2, args.end(), string_view{"--"});
+    auto delimiter = find(args.begin()+2, args.end(), string_view{"--"});
 
-    clap.parse(args.begin()+2, delimiter_it);
+    clap.parse(args.begin()+2, delimiter);
 
     string out_exe_temp_dir = cxx.string();
     replace_if(
@@ -44,8 +44,10 @@ void main0(vector<string_view> args) {
     comp.output = exec_out;
     comp.execute();
 
+    auto args_begin = delimiter==args.end() ? args.end() : delimiter+1;
+
     try {
-        command_executor{exec_out.string(), {delimiter_it+1, args.end()}}.execute();
+        command_executor{exec_out.string(), {args_begin, args.end()}}.execute();
     } catch(...) {} //We're not interested in this.
 }
 
