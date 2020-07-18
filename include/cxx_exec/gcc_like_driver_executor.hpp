@@ -3,7 +3,12 @@
 #include "command_executor.hpp"
 #include <filesystem>
 #include <optional>
-#include "environment.hpp"
+
+// Avoid headers circulation, included at the end
+namespace environment {
+    template<class NT, class It>
+    void execute(NT name0, It args_begin, It args_end);
+}
 
 namespace gcc_like_driver {
 
@@ -165,3 +170,5 @@ struct gcc_like_driver_executor : command::command_executor_base {
 };
 
 }
+
+#include "environment.hpp"

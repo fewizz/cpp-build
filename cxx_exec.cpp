@@ -38,7 +38,8 @@ int main(int argc, char* argv[]) {
     exec.replace_extension();
     create_directories(exec);
 
-    clang::driver::executor comp("clang++", clang::driver::lang_std::cxx20);
+    auto comp = environment::cxx_compiler();
+    comp.std = gcc_like_driver::cxx20;
     comp.include_quote_path(root/"include");
     comp.input_file(cxx);
     comp.input_file(root/"share/cxx_exec/exec_entry.cpp");

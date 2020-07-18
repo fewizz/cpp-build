@@ -2,8 +2,16 @@
 
 #include <filesystem>
 #include "command_processor.hpp"
+#include "gcc_like_driver_executor.hpp"
+#include <cstdlib>
 
 namespace environment {
+
+inline gcc_like_driver::gcc_like_driver_executor cxx_compiler() {
+    if(auto comp = std::getenv("CXX"))
+        return {comp};
+    return {"clang++"};
+}
 
 constexpr struct : command::command_processor_base {
     using command::command_processor_base::process;
@@ -11,13 +19,13 @@ constexpr struct : command::command_processor_base {
     void process(std::string command) const override {
         if(int code = std::system(command.c_str()))
         throw std::runtime_error {
-            "\""+command+"\" command's exit code is '"
+            "'"+command+"' command's exit code is '"
             +std::to_string(code)+"'"
         };
     }
 } command_processor;
 
-void execute(std::string command) {
+inline void execute(std::string command) {
     command_processor.process(command);
 }
 
