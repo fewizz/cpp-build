@@ -1,4 +1,5 @@
 #include "cxx_exec/clang_driver_executor.hpp"
+#include "cxx_exec/environment.hpp"
 #include "clap/gnu_clap.hpp"
 #include <filesystem>
 #include <algorithm>
@@ -7,7 +8,8 @@
 using namespace std;
 using namespace filesystem;
 
-void main0(vector<string_view> args) {
+int main(int argc, char* argv[]) {
+    vector<string_view> args{argv, argv+argc};
     gnu::clap clap;
     path root = path(args[0]).parent_path().parent_path();
 
@@ -32,27 +34,23 @@ void main0(vector<string_view> args) {
         '_'
     );
 
-    path exec_out = absolute(temp_directory_path()) / out_exe_temp_dir;
-    exec_out.replace_extension();
-    create_directories(exec_out);
+    path exec = absolute(temp_directory_path()) / out_exe_temp_dir;
+    exec.replace_extension();
+    create_directories(exec);
 
     clang::driver::executor comp("clang++", clang::driver::lang_std::cxx20);
     comp.include_quote_path(root/"include");
     comp.input_file(cxx);
     comp.input_file(root/"share/cxx_exec/exec_entry.cpp");
     comp.verbose(verbose);
-    comp.output = exec_out;
+    comp.output = exec;
     comp.execute();
 
     auto args_begin = delimiter==args.end() ? args.end() : delimiter+1;
 
     try {
-        command_executor{exec_out.string(), {args_begin, args.end()}}.execute();
+        environment::execute(exec, args_begin, args.end());
     } catch(...) {} //We're not interested in this.
-}
-
-int main(int argc, char* argv[]) {
-    main0(vector<string_view>{argv, argv+argc});
 
     return EXIT_SUCCESS;
 }

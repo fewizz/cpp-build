@@ -3,6 +3,7 @@
 #include "command_executor.hpp"
 #include <filesystem>
 #include <optional>
+#include "environment.hpp"
 
 namespace gcc_like_driver {
 
@@ -78,8 +79,8 @@ struct debug_information_type:debug_information_type_t {
     stabs{gcc_like_driver::stabs}, xcoff{gcc_like_driver::xcoff}, vms{gcc_like_driver::vms};
 };
 
-struct gcc_like_driver_executor : protected command_executor {
-    using command_executor::args;
+struct gcc_like_driver_executor : command::command_executor_base {
+    string name;
 
     optional<debug_information_type> debug_information_type;
     optional<input_type> input_type;   // -x
@@ -91,10 +92,10 @@ struct gcc_like_driver_executor : protected command_executor {
     optional<path> working_directory;  // -working-directory='dir'
     optional<bool> verb;               // -v
 
-    gcc_like_driver_executor(string name) : command_executor{name}{};
+    gcc_like_driver_executor(string name) : name{name}{};
 
     gcc_like_driver_executor(string name, lang_std std)
-        :command_executor{name}, std{std}{}
+        :name{name}, std{std}{}
 
     struct input_file_t {
         enum type_t {
@@ -125,8 +126,8 @@ struct gcc_like_driver_executor : protected command_executor {
 
     void verbose(bool val) {verb = val;}
 
-    void execute() const {
-        vector<string> args{command_executor::args};
+    void execute() const override {
+        vector<string> args{};
 
         if(debug_information_type)
             args.push_back("-"+string{debug_information_type->option});
@@ -159,7 +160,7 @@ struct gcc_like_driver_executor : protected command_executor {
             args.push_back(p.type == input_file_t::library ? "-l"+p.path : p.path);
         }
 
-        return command_executor::execute(args);
+        environment::execute(name, args.begin(), args.end());
     }
 };
 
