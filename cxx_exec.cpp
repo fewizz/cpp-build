@@ -1,4 +1,4 @@
-#include "cxx_exec/clang_driver.hpp"
+#include "cxx_exec/clang_driver_executor.hpp"
 #include "clap/gnu_clap.hpp"
 #include <filesystem>
 #include <algorithm>
@@ -36,7 +36,7 @@ void main0(vector<string_view> args) {
     exec_out.replace_extension();
     create_directories(exec_out);
 
-    clang::driver::executor comp("clang++", clang::driver::lang_stds::cxx20);
+    clang::driver::executor comp("clang++", clang::driver::lang_std::cxx20);
     comp.include_quote_path(root/"include");
     comp.input_file(cxx);
     comp.input_file(root/"share/cxx_exec/exec_entry.cpp");
@@ -52,9 +52,6 @@ void main0(vector<string_view> args) {
 }
 
 int main(int argc, char* argv[]) {
-    //vector<string_view> args;
-
-    //for_each(argv, argv+argc, [&](auto arg){ args.emplace_back(arg); });
     main0(vector<string_view>{argv, argv+argc});
 
     return EXIT_SUCCESS;

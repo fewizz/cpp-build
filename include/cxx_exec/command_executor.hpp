@@ -22,7 +22,7 @@ struct command_executor {
     }
 
 protected:
-    void execute(std::vector<std::string>& args) {
+    void execute(std::vector<std::string>& args) const {
         auto args_str = std::accumulate(
             args.begin(),
             args.end(),
