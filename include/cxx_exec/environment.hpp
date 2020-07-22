@@ -4,6 +4,7 @@
 #include "command_processor.hpp"
 #include "gcc_like_driver_executor.hpp"
 #include <cstdlib>
+#include "unix/ipstream.hpp"
 
 namespace environment {
 
@@ -27,6 +28,15 @@ constexpr struct : command::command_processor_base {
 
 inline void execute(std::string command) {
     command_processor.process(command);
+}
+
+inline std::string read_pipe(std::string command) {
+    unix::ipstream s{command};
+    std::string output;
+    char ch;
+    while((ch = s.get()) != EOF)
+        output.push_back(ch);
+    return output;
 }
 
 template<class NT, class It>

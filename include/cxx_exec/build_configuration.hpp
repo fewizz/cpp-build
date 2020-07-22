@@ -7,8 +7,8 @@
 namespace build {
 
 struct configuration {
-    std::string name;
-    std::function<void(gcc_like_driver::gcc_like_driver_executor& comp)> compiler_options_applier;
+    const std::string name;
+    const std::function<void(gcc_like_driver::gcc_like_driver_executor& comp)> compiler_options_applier;
 };
 
 configuration release {
