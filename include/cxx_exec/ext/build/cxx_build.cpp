@@ -4,9 +4,10 @@
 #include <filesystem>
 #include "cxx_exec/environment.hpp"
 #include "clap/gnu_clap.hpp"
+#include "cxx_exec/environment.hpp"
 
 using namespace std;
-using namespace filesystem;
+using namespace std::filesystem;
 
 // name
 optional<string> name;
@@ -50,11 +51,11 @@ configuration& debug = get_configuration("debug");
 
 optional<reference_wrapper<configuration>> build_configuration;
 
-enum class binary_type {
-    executable,
-    static_library,
-    dynamic_library
-};
+struct binary_type {
+}
+executable,
+static_library,
+dynamic_library;
 
 struct dependency {
     virtual void resolve() = 0;
@@ -80,9 +81,24 @@ struct cxx_build : dependency {
     }
 };
 
-optional<vector<dependency>> dependencies;
+vector<dependency> dependencies;
 optional<binary_type> output_type;
-vector<string> sources;
+
+struct source_set : vector<path> {
+    void include_file(path p) {
+        push_back(p);
+    }
+
+    void include_directory_recursive(path p, string extension = ".cpp") {
+        for(auto& it : recursive_directory_iterator{p}) {
+            if(!it.is_regular_file())
+                continue;
+
+            if(it.path().extension() == extension)
+                push_back(it);
+        }
+    }
+} sources;
 
 void configure();
 
@@ -90,15 +106,40 @@ void exec(vector<string> args) {
     bool info_name;
     gnu::clap clap;
     clap.flag("info-name", info_name);
-    clap.required_option("configuration", [&](string_view arg) {
+    clap.option("configuration", [&](string_view arg) {
         build_configuration = get_configuration(string{arg});
     });
     clap.parse(args.begin(), args.end());
 
     configure();
 
-    if(!name) throw runtime_error("name not specified");
+    auto error_if_null = [&](auto& o, string name){
+        if(!o) throw runtime_error(name+" not specified");
+    };
+
+    error_if_null(build_configuration, "build configuration");
+    error_if_null(name, "name");
+    error_if_null(output_type, "output_type");
 
     if(info_name)
         cout << *name;
+
+    for(auto& dep : dependencies) {
+        dep.resolve();
+    }
+
+    auto comp = environment::cxx_compiler();
+    comp.include_path("./include");
+
+    build_configuration->get().compiler_options_applier(comp);
+    for(auto& source : sources) {
+        comp.input_files.clear();
+        comp.input_file(source);
+        comp.output_type = compiler_driver::output_type::object_file;
+        path output =
+            ("build/object/"+build_configuration->get().name)/source.replace_extension(".o");
+        create_directories(path{output}.remove_filename());
+        comp.output = output;
+        comp.execute();
+    }    
 }
