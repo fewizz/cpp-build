@@ -36,12 +36,14 @@ int main(int argc, char* argv[]) {
     auto comp = environment::cxx_compiler();
     comp.std = gcc_like_driver::cxx20;
     comp.include_quote_path(root/"include");
+    comp.input_file(root/"share/cxx_exec/cxx_exec_entry.cpp");
     comp.input_file(cxx);
-    comp.input_file(root/"share/cxx_exec/exec_entry.cpp");
     comp.verbose(verbose);
     if(gdb) comp.debug_information_type = clang::driver::gdb;
     comp.output = exec;
-    comp.execute();
+    try{
+        comp.execute();
+    } catch(...) {return EXIT_FAILURE;}
 
     auto args_begin = delimiter==args.end() ? args.end() : delimiter+1;
 

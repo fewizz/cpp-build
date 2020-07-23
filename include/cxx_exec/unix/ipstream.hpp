@@ -12,23 +12,41 @@ struct basic_pipebuf : std::basic_streambuf<CharT, Traits> {
     using typename std::basic_streambuf<CharT, Traits>::int_type;
 
     FILE* file;
+    char* prev_read = 0;
 
     basic_pipebuf(FILE* f)
     :
     file{f}
-    {}
+    {
+        this->setg(0, 0, 0);
+    }
 
     ~basic_pipebuf() override {
         pclose(file);
     }
 
     int_type uflow() override {
-        return underflow();
+        auto diff = this->gptr() - prev_read;
+        if(diff) {
+            fseek(file, diff, SEEK_CUR);
+            prev_read+=diff;
+        }
+        char ch = fgetc(file);
+        if(ch != EOF) { 
+            this->setg(this->eback(), this->gptr()+1, this->egptr()+1);
+            prev_read++;
+        }
+        return ch;
     }
 
     int_type underflow() override {
+        auto diff = this->gptr() - prev_read;
+        if(diff) {
+            fseek(file, diff, SEEK_CUR);
+            prev_read+=diff;
+        }
         char ch = fgetc(file);
-        if(ch != EOF) this->setg(this->eback(), this->gptr()+1, this->egptr()+1);
+        ungetc(ch, file);
         return ch;
     }
 };

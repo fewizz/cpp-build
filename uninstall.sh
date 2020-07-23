@@ -1,3 +1,4 @@
 echo "uninstalling..."
-rm -vf $1/bin/cpp-build.exe
-rm -rvf $1/include/cpp_build
+rm -vf $1/bin/cxx-exec
+rm -rvf $1/include/cxx_exec
+rm -rvf $1/share/cxx_exec

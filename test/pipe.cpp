@@ -1,17 +1,23 @@
 #include "../include/cxx_exec/unix/ipstream.hpp"
+#include <assert.h>
 #include <string>
 #include <vector>
-#include <assert.h>
 
 using namespace std;
 
 void exec(vector<string> args) {
     assert(args.size()>0);
-    cout<<"arg: "<<args[0]<<"\n";
-    unix::basic_ipstream<char> s{args[0]};
+
+    cout << "using get():\n";
+    unix::ipstream s0{args[0]};
 
     char ch;
-
-    while( (ch=s.get()) != EOF )
+    while( (ch=s0.get()) != EOF )
         cout << ch;
+
+    cout << "using << operator:\n";
+    unix::ipstream s1{args[0]};
+    std::string str;
+    s1 >> str;
+    cout << str;
 }

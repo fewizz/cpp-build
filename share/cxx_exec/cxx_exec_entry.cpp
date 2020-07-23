@@ -1,8 +1,9 @@
 #include <vector>
 #include <string>
-#include <iostream>
 
-void exec(std::vector<std::string> args);
+using namespace std;
+
+void exec(vector<string> args);
 
 int main(int argc,char** argv) {
     exec({argv+1, argv+argc});
