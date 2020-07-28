@@ -43,14 +43,14 @@ int main(int argc, char* argv[]) {
         .out(exec);
     if(gdb) cc.debug(gcc_like_driver::gdb);
     try {
-        environment.execute(cc);
+        environment::execute(cc);
     } catch(...) {return EXIT_FAILURE;}
 
     auto args_begin = delimiter==args.end() ? args.end() : delimiter+1;
     auto exec_command = 
         gdb ? cmd::command{"gdb", exec} : cmd::command{exec, args_begin, args.end()};
     try {
-        environment.execute(exec_command);
+        environment::execute(exec_command);
     } catch(...) {} //We're not interested in this.
 
     return EXIT_SUCCESS;

@@ -26,4 +26,10 @@ static inline gcc_like_driver::command_builder cxx_compile_command_builder() {
     return {cxx_compiler()};
 }
 
+static inline void execute(cmd::command);
+
 } environment;
+
+inline void environment::execute(cmd::command c) {
+    ::environment.process(c);
+}

@@ -137,6 +137,7 @@ public:
     }
 
     command_builder& out(path p) { output = p; return *this; }
+    path out() { return *output; }
 
     command_builder& out_type(output_type ot) {
         m_output_type = ot;
