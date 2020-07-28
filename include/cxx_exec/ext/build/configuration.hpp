@@ -3,20 +3,21 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include "../../gcc_like_driver_executor.hpp"
+#include "../../gcc_like_driver.hpp"
 
 using namespace std;
 
-namespace compiler_driver {
-    using namespace gcc_like_driver;
-    using executor = gcc_like_driver_executor;
-}
-
-using compiler = compiler_driver::executor;
+using compiler = gcc_like_driver::command_builder;
 
 struct configuration {
     const string name;
-    function<void(compiler& comp)> compiler_options_applier;
+    function<void(compiler&)> applier;
+
+    bool operator==(const configuration& other) const {
+        return this == &other;
+    }
+
+    void apply(compiler& cc) { applier(cc); }
 };
 
 vector<configuration> configurations = {
@@ -29,7 +30,7 @@ vector<configuration> configurations = {
     {
         "debug",
         [](compiler& comp) {
-            comp.debug_information_type = compiler_driver::debug_information_type::native;
+            comp.debug(gcc_like_driver::native);
         }
     }
 };

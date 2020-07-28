@@ -37,8 +37,8 @@ int main(int argc, char* argv[]) {
     auto cc = environment::cxx_compile_command_builder()
         .std(gcc_like_driver::cxx20)
         .quote_include(root/"include")
-        .input_file(root/"share/cxx_exec/cxx_exec_entry.cpp")
-        .input_file(cxx)
+        .input(root/"share/cxx_exec/cxx_exec_entry.cpp")
+        .input(cxx)
         .verbose(verbose)
         .out(exec);
     if(gdb) cc.debug(gcc_like_driver::gdb);

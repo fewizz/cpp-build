@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <set>
 #include "command.hpp"
 
 namespace gcc_like_driver {
@@ -50,10 +51,14 @@ struct lang_std:lang_std_t {
     cxx20{gcc_like_driver::cxx20}, gnucxx20{gcc_like_driver::gnucxx20};
 };
 
-struct output_type_t {
+constexpr struct output_type_t {
     string_view option;
     constexpr output_type_t(const string_view option):option{option}{}
-};
+}
+object_file{"c"},
+assembler_code{"S"},
+preprocessed_src{"E"};
+
 struct output_type:output_type_t {
     output_type(const output_type_t it):output_type_t{it}{}
 
@@ -84,7 +89,7 @@ protected:
 
     optional<debug_information_type> debug_information_type;
     optional<input_type> input_type;   // -x
-    optional<output_type> output_type; // -c, -S, -E
+    optional<output_type> m_output_type; // -c, -S, -E
     optional<path> output;             // --output
     optional<lang_std> m_std;            // --std='arg'
     optional<string> compiler_files;   // -B'prefix'
@@ -102,7 +107,19 @@ protected:
     vector<input_file_t> input_files;
     vector<path> include_paths; // -Idir
     vector<path> include_quote_paths; // -iquote dir
-    vector<pair<string, optional<string>>> definitions;
+public:
+    struct definition_t {
+        string name;
+        optional<string> value;
+        bool operator == (const definition_t& d) const {
+            return name==d.name;
+        }
+        bool operator < (const definition_t& d) const {
+            return name < d.name;
+        }
+    };
+protected:
+    set<definition_t> m_definitions;
 
 public:
 
@@ -121,8 +138,17 @@ public:
 
     command_builder& out(path p) { output = p; return *this; }
 
-    command_builder& input_file(path p) {
+    command_builder& out_type(output_type ot) {
+        m_output_type = ot;
+        return *this;
+    }
+
+    command_builder& input(path p) {
         input_files.push_back(input_file_t{input_file_t::source, p.string()}); return *this;
+    }
+
+    void clear_inputs() {
+        input_files.clear();
     }
 
     void library(string name) {
@@ -133,8 +159,15 @@ public:
 
     command_builder& quote_include(path p) { include_quote_paths.push_back(p); return *this; }
 
-    void definition(string name, optional<string> def={}) {
-        definitions.emplace_back(name, def);
+    command_builder& definition(definition_t d) {
+        m_definitions.insert(d);
+        return *this;
+    }
+
+    command_builder& definitions(initializer_list<definition_t> il) {
+        for(auto& d : il)
+            definition(d);
+        return *this;
     }
 
     command_builder& verbose(bool val) {verb = val; return *this;}
@@ -144,8 +177,8 @@ public:
 
         if(debug_information_type)
             args.push_back("-"+string{debug_information_type->option});
-        if(output_type)
-            args.push_back("-"+string{output_type->option});
+        if(m_output_type)
+            args.push_back("-"+string{m_output_type->option});
         if(verb and *verb)
             args.push_back("-v");
         if(working_directory)
@@ -155,7 +188,7 @@ public:
         if(output)
             args.push_back("--output="+output->string());
         
-        for(auto [name, def] : definitions) {
+        for(auto [name, def] : m_definitions) {
             string res = "\"-D"+name;
             if(def)
                 res+="="+*def;
