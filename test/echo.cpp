@@ -1,7 +1,10 @@
-#include <algorithm>
+#include <vector>
+#include <string>
+#include <iostream>
+
+using namespace std;
 
 void exec(vector<string> args) {
-    for_each(args.begin(), args.end(), [](string& str){
-        cout << str << " ";
-    });
+    for(auto& arg : args)
+        cout << arg << " ";
 }

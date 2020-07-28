@@ -1,11 +1,13 @@
 #pragma once
 
 #include <string>
+#include "command.hpp"
 
-namespace command {
+namespace cmd {
 
-struct command_processor_base {
-    virtual void process(std::string command) const = 0;
+struct processor {
+    virtual void process(command c) = 0;
+    void execute(command c) { process(c); }
 };
 
 }

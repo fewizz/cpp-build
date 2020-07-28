@@ -1,4 +1,4 @@
-#include "cxx_exec/clang_driver_executor.hpp"
+#include "cxx_exec/gcc_like_driver.hpp"
 #include "cxx_exec/environment.hpp"
 #include "clap/gnu_clap.hpp"
 #include <filesystem>
@@ -12,11 +12,12 @@ using namespace filesystem;
 int main(int argc, char* argv[]) {
     vector<string_view> args{argv, argv+argc};
 
-    path root = path(args[0]).parent_path().parent_path();
     if(args.size() <= 1)
         throw runtime_error("c++ file not provided");
+    
+    path root = path(args[0]).parent_path().parent_path();
     path cxx = absolute(args[1]);
-    if(!exists(cxx))
+    if(not exists(cxx))
         throw runtime_error("c++ file doesn't exists");
 
     bool verbose, gdb;
@@ -31,26 +32,25 @@ int main(int argc, char* argv[]) {
 
     path exec = absolute(temp_directory_path()) / to_string(getpid());
 
-    create_directories(exec);
+    create_directories(path{exec}.remove_filename());
 
-    auto comp = environment::cxx_compiler();
-    comp.std = gcc_like_driver::cxx20;
-    comp.include_quote_path(root/"include");
-    comp.input_file(root/"share/cxx_exec/cxx_exec_entry.cpp");
-    comp.input_file(cxx);
-    comp.verbose(verbose);
-    if(gdb) comp.debug_information_type = clang::driver::gdb;
-    comp.output = exec;
-    try{
-        comp.execute();
+    auto cc = environment::cxx_compile_command_builder()
+        .std(gcc_like_driver::cxx20)
+        .quote_include(root/"include")
+        .input_file(root/"share/cxx_exec/cxx_exec_entry.cpp")
+        .input_file(cxx)
+        .verbose(verbose)
+        .out(exec);
+    if(gdb) cc.debug(gcc_like_driver::gdb);
+    try {
+        environment.execute(cc);
     } catch(...) {return EXIT_FAILURE;}
 
     auto args_begin = delimiter==args.end() ? args.end() : delimiter+1;
-
+    auto exec_command = 
+        gdb ? cmd::command{"gdb", exec} : cmd::command{exec, args_begin, args.end()};
     try {
-        if(gdb)
-            environment::execute("gdb "+exec.string());
-        else environment::execute(exec, args_begin, args.end());
+        environment.execute(exec_command);
     } catch(...) {} //We're not interested in this.
 
     return EXIT_SUCCESS;

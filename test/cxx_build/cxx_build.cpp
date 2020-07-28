@@ -3,11 +3,11 @@
 
 #include "../../include/cxx_exec/ext/build/cxx_build.cpp"
 
-using namespace std;
+void configure(builder& b);
 
-void configure() {
-    name = "test";
-    output_type = executable;
+auto& test_builder = add_buidler("test", configure);
+
+void configure(builder& b) {
     build_configuration = release;
     sources.include_directory_recursive("src");
 }

@@ -1,14 +1,8 @@
 #pragma once
 
-#include "command_executor.hpp"
 #include <filesystem>
 #include <optional>
-
-// Avoid headers circulation, included at the end
-namespace environment {
-    template<class NT, class It>
-    void execute(NT name0, It args_begin, It args_end);
-}
+#include "command.hpp"
 
 namespace gcc_like_driver {
 
@@ -84,23 +78,19 @@ struct debug_information_type:debug_information_type_t {
     stabs{gcc_like_driver::stabs}, xcoff{gcc_like_driver::xcoff}, vms{gcc_like_driver::vms};
 };
 
-struct gcc_like_driver_executor : command::command_executor_base {
+struct command_builder {
+protected:
     string name;
 
     optional<debug_information_type> debug_information_type;
     optional<input_type> input_type;   // -x
     optional<output_type> output_type; // -c, -S, -E
     optional<path> output;             // --output
-    optional<lang_std> std;            // --std='arg'
+    optional<lang_std> m_std;            // --std='arg'
     optional<string> compiler_files;   // -B'prefix'
     optional<path> system_root;        // --sysroot'dir'
     optional<path> working_directory;  // -working-directory='dir'
     optional<bool> verb;               // -v
-
-    gcc_like_driver_executor(string name) : name{name}{};
-
-    gcc_like_driver_executor(string name, lang_std std)
-        :name{name}, std{std}{}
 
     struct input_file_t {
         enum type_t {
@@ -110,40 +100,58 @@ struct gcc_like_driver_executor : command::command_executor_base {
     };
 
     vector<input_file_t> input_files;
+    vector<path> include_paths; // -Idir
+    vector<path> include_quote_paths; // -iquote dir
+    vector<pair<string, optional<string>>> definitions;
 
-    void input_file(path p) {
-        input_files.push_back(input_file_t{input_file_t::source, p.string()});
+public:
+
+    command_builder(string name) : name{name}{};
+
+    command_builder(string name, lang_std std)
+        :name{name}, m_std{std}{}
+
+    command_builder& std(gcc_like_driver::lang_std s) {
+        m_std = s; return *this;
     }
+
+    void debug(gcc_like_driver::debug_information_type dit) {
+        debug_information_type = dit;
+    }
+
+    command_builder& out(path p) { output = p; return *this; }
+
+    command_builder& input_file(path p) {
+        input_files.push_back(input_file_t{input_file_t::source, p.string()}); return *this;
+    }
+
     void library(string name) {
         input_files.push_back(input_file_t{input_file_t::library, name});
     }
 
-    vector<path> include_paths; // -Idir
-    void include_path(path p) { include_paths.push_back(p); }
+    command_builder& include(path p) { include_paths.push_back(p); return *this; }
 
-    vector<path> include_quote_paths; // -iquote dir
-    void include_quote_path(path p) { include_quote_paths.push_back(p); }
+    command_builder& quote_include(path p) { include_quote_paths.push_back(p); return *this; }
 
-    vector<pair<string, optional<string>>> definitions;
     void definition(string name, optional<string> def={}) {
         definitions.emplace_back(name, def);
     }
 
-    void verbose(bool val) {verb = val;}
+    command_builder& verbose(bool val) {verb = val; return *this;}
 
-    void execute() const override {
-        vector<string> args{};
+    operator cmd::command() {
+        vector<string> args;
 
         if(debug_information_type)
             args.push_back("-"+string{debug_information_type->option});
         if(output_type)
             args.push_back("-"+string{output_type->option});
-        if(verb && *verb)
+        if(verb and *verb)
             args.push_back("-v");
         if(working_directory)
             args.push_back("-working-directory="+working_directory->string());
-        if(std)
-            args.push_back("-std="+string{std->name});
+        if(m_std)
+            args.push_back("-std="+string{m_std->name});
         if(output)
             args.push_back("--output="+output->string());
         
@@ -154,21 +162,18 @@ struct gcc_like_driver_executor : command::command_executor_base {
             res+="\"";
             args.push_back(res);
         }
-        for(auto p : include_paths) {
+        
+        for(auto p : include_paths)
             args.push_back("-I"+p.string());
-        }
-        for(auto p : include_quote_paths) {
+        
+        for(auto p : include_quote_paths)
             args.push_back("-iquote "+p.string());
-        }
-        for(auto p : input_files) {
-            auto res = p;
+        
+        for(auto p : input_files)
             args.push_back(p.type == input_file_t::library ? "-l"+p.path : p.path);
-        }
 
-        environment::execute(name, args.begin(), args.end());
+        return {name, args.begin(), args.end()};
     }
 };
 
 }
-
-#include "environment.hpp"

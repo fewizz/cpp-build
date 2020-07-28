@@ -2,67 +2,28 @@
 
 #include <filesystem>
 #include "command_processor.hpp"
-#include "gcc_like_driver_executor.hpp"
+#include "gcc_like_driver.hpp"
 #include <cstdlib>
 #include "unix/ipstream.hpp"
 
-namespace environment {
+struct environment : cmd::processor {
 
-inline gcc_like_driver::gcc_like_driver_executor cxx_compiler() {
+void process(cmd::command command) override {
+    if(int code = std::system(command.string().c_str()))
+    throw std::runtime_error {
+        "'"+command.string()+"' command's exit code is '"
+        +std::to_string(code)+"'"
+    };
+}
+
+static inline std::string cxx_compiler() {
     if(auto comp = std::getenv("CXX"))
         return {comp};
     return {"clang++"};
 }
 
-constexpr struct : command::command_processor_base {
-    using command::command_processor_base::process;
-
-    void process(std::string command) const override {
-        if(int code = std::system(command.c_str()))
-        throw std::runtime_error {
-            "'"+command+"' command's exit code is '"
-            +std::to_string(code)+"'"
-        };
-    }
-} command_processor;
-
-inline void execute(std::string command) {
-    command_processor.process(command);
+static inline gcc_like_driver::command_builder cxx_compile_command_builder() {
+    return {cxx_compiler()};
 }
 
-inline std::string read_pipe(std::string command) {
-    unix::ipstream s{command};
-    std::string output;
-    char ch;
-    while((ch = s.get()) != EOF)
-        output.push_back(ch);
-    return output;
-}
-
-template<class NT, class It>
-void execute(NT name0, It args_begin, It args_end) {
-    std::string name{ std::filesystem::path{name0}.string() };
-
-    std::string::size_type total_size = name.length();
-
-    std::for_each(args_begin, args_end, [&](auto& arg) {
-        total_size+=std::string_view(arg).length() + 1;
-    });
-
-    std::string command{total_size, ' ', std::allocator<char>()};
-
-    auto pos = command.begin();
-
-    command.replace(pos, (pos+=name.length()), name);
-    pos++;
-
-    std::for_each(args_begin, args_end, [&](auto& arg) {
-        std::string_view v{arg};
-        command.replace(pos, (pos+=v.length()), v);
-        pos++;
-    });
-
-    command_processor.process(command);
-}
-
-}
+} environment;
