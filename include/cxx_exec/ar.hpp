@@ -10,9 +10,6 @@
 namespace ar {
 
 struct command_builder {
-    std::optional<std::filesystem::path> archive;
-    std::vector<std::filesystem::path> members;
-
     struct option_t {
         char ch;
         std::set<char> modifiers;
@@ -26,6 +23,9 @@ struct command_builder {
     };
 
     std::optional<option_t> option;
+    
+    std::optional<std::filesystem::path> archive;
+    std::vector<std::filesystem::path> members;
 
     operator cmd::command() {
         std::vector<std::string> args;
@@ -61,7 +61,7 @@ struct members_specifier {
     operator cmd::command() { return cb; }
 };
 
-enum class archive_prefix { of, to, in };
+enum class archive_prefix { none, of, to, in, from };
 enum class verbose { t, f };
 
 template<verbose Verbose, archive_prefix Prefix>
@@ -71,6 +71,11 @@ struct modifier_choose {
     template<verbose V=Verbose> std::enable_if_t<V==verbose::t, modifier_choose<verbose::f, Prefix>>
     verbose() { cb.option->modifiers.insert('v'); return {cb}; }
 
+    modifier_choose<Verbose, Prefix> thin() { cb.option->modifiers.insert('T'); return {cb}; }
+
+    template<archive_prefix P=Prefix> std::enable_if_t<P==archive_prefix::none, members_specifier<create::t>>
+    archive(std::filesystem::path p) { cb.archive = p; return {cb}; }
+
     template<archive_prefix P=Prefix> std::enable_if_t<P==archive_prefix::to, members_specifier<create::t>>
     to_archive(std::filesystem::path p) { cb.archive = p; return {cb}; }
 
@@ -79,6 +84,11 @@ struct modifier_choose {
 
     template<archive_prefix P=Prefix> std::enable_if_t<P==archive_prefix::in, members_specifier<create::t>>
     in_archive(std::filesystem::path p) { cb.archive = p; return {cb}; }
+
+    template<archive_prefix P=Prefix> std::enable_if_t<P==archive_prefix::from, members_specifier<create::t>>
+    from_archive(std::filesystem::path p) { cb.archive = p; return {cb}; }
+
+    operator cmd::command() { return cb; }
 };
 
 static inline modifier_choose<verbose::t, archive_prefix::to> insert() {
@@ -93,9 +103,15 @@ static inline modifier_choose<verbose::t, archive_prefix::of> contents() {
     return {cb};
 }
 
-static inline modifier_choose<verbose::t, archive_prefix::in> del() {
+static inline modifier_choose<verbose::t, archive_prefix::from> del() {
     command_builder cb;
     cb.option = {'d'};
+    return {cb};
+}
+
+static inline modifier_choose<verbose::t, archive_prefix::none> index() {
+    command_builder cb;
+    cb.option = {'s'};
     return {cb};
 }
 

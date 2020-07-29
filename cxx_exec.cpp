@@ -49,6 +49,7 @@ int main(int argc, char* argv[]) {
     auto args_begin = delimiter==args.end() ? args.end() : delimiter+1;
     auto exec_command = 
         gdb ? cmd::command{"gdb", exec} : cmd::command{exec, args_begin, args.end()};
+    
     try {
         environment::execute(exec_command);
     } catch(...) {} //We're not interested in this.
