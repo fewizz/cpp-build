@@ -9,13 +9,24 @@
 using namespace std;
 using namespace filesystem;
 
+#ifdef _WIN32
+#include <libloaderapi.h>
+static inline string current_exec_path() {
+    vector<char> chars(0xFF);
+    int w = GetModuleFileNameA(nullptr, chars.data(), chars.size());
+    return {chars.begin(), chars.begin() + w};
+}
+#endif
+
 int main(int argc, char* argv[]) {
+    path cxx_exec = current_exec_path();
+
     vector<string_view> args{argv, argv+argc};
 
     if(args.size() <= 1)
         throw runtime_error("c++ file not provided");
     
-    path root = path(args[0]).parent_path().parent_path();
+    path root = cxx_exec.parent_path().parent_path();
     path cxx = absolute(args[1]);
     if(not exists(cxx))
         throw runtime_error("c++ file doesn't exists");
@@ -29,6 +40,11 @@ int main(int argc, char* argv[]) {
     auto delimiter = find(args.begin()+2, args.end(), "--");
 
     clap.parse(args.begin()+2, delimiter);
+
+    if(verbose) {
+        cout << "cxx_exec executable: "+cxx_exec.string()+"\n";
+        cout << "root: "+root.string()+"\n";
+    }
 
     path exec = absolute(temp_directory_path()) / to_string(getpid());
 

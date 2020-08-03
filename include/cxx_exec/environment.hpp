@@ -17,8 +17,7 @@ void process(cmd::command command) override {
 }
 
 static inline std::string cxx_compiler() {
-    auto comp{variable("CXX")};
-    return comp.empty() ? "clang++" : comp;
+    return variable("CXX", "clang++");
 }
 
 static inline gcc_like_driver::command_builder cxx_compile_command_builder() {
@@ -27,10 +26,9 @@ static inline gcc_like_driver::command_builder cxx_compile_command_builder() {
 
 static inline void execute(cmd::command);
 
-static inline std::string variable(std::string name) {
-    if(auto val = std::getenv(name.c_str()))
-        return val;
-    return {};
+static inline std::string variable(std::string name, std::string def={}) {
+    auto val = std::getenv(name.c_str());
+    return val not_eq nullptr ? std::string{val} : def;
 }
 
 } environment;
