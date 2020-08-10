@@ -11,23 +11,30 @@ using namespace filesystem;
 
 #ifdef _WIN32
 #include <libloaderapi.h>
+#include <errhandlingapi.h>
+#include <winerror.h>
 static inline string current_exec_path() {
-    vector<char> chars(0xFF);
-    int w = GetModuleFileNameA(nullptr, chars.data(), chars.size());
-    return {chars.begin(), chars.begin() + w};
+    vector<char> chars;
+
+	int w;
+	do {
+		chars.resize(chars.size()+0x100);
+    	w = GetModuleFileNameA(nullptr, chars.data(), chars.size());
+	} while(GetLastError() == ERROR_INSUFFICIENT_BUFFER);
+	return {chars.begin(), chars.begin() + w};
 }
 #endif
 
 int main(int argc, char* argv[]) {
     path cxx_exec = current_exec_path();
 
-    vector<string_view> args{argv, argv+argc};
+    vector<string_view> args{argv+1, argv+argc};
 
-    if(args.size() <= 1)
+    if(args.empty())
         throw runtime_error("c++ file not provided");
     
     path root = cxx_exec.parent_path().parent_path();
-    path cxx = absolute(args[1]);
+    path cxx = absolute(args[0]);
     if(not exists(cxx))
         throw runtime_error("c++ file doesn't exists");
 
@@ -37,9 +44,9 @@ int main(int argc, char* argv[]) {
         .flag("verbose", verbose)
         .flag("gdb", gdb);
 
-    auto delimiter = find(args.begin()+2, args.end(), "--");
+    auto delimiter = find(args.begin()+1, args.end(), "--");
 
-    clap.parse(args.begin()+2, delimiter);
+    clap.parse(args.begin()+1, delimiter);
 
     if(verbose) {
         cout << "cxx_exec executable: "+cxx_exec.string()+"\n";
@@ -53,8 +60,7 @@ int main(int argc, char* argv[]) {
     auto cc = environment::cxx_compile_command_builder()
         .std(gcc_like_driver::cxx20)
         .quote_include(root/"include")
-        .input(root/"share/cxx_exec/cxx_exec_entry.cpp")
-        .input(cxx)
+        .in({root/"share/cxx_exec/cxx_exec_entry.cpp", cxx})
         .verbose(verbose)
         .out(exec);
     if(gdb) cc.debug(gcc_like_driver::gdb);

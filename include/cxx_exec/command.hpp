@@ -22,7 +22,7 @@ public:
 
     template<class ArgsIter>
     command(std::string p, ArgsIter begin, ArgsIter end) {
-        std::string result;
+		std::string result;
         result+=p;
         for_each(begin, end, [&](auto& arg) {
             result+=" "+std::string{arg};
@@ -46,10 +46,5 @@ public:
         return m_command;
     }
 };
-
-/*struct builder {
-    virtual command build() = 0;
-    operator command() { return build(); }
-};*/
 
 }

@@ -144,8 +144,18 @@ public:
         return *this;
     }
 
-    command_builder& input(path p) {
+    command_builder& out(path p, output_type ot) {
+        out(p);
+        return out_type(ot);
+    }
+
+    command_builder& in(path p) {
         input_files.push_back(input_file_t{input_file_t::source, p.string()}); return *this;
+    }
+
+    command_builder& in(std::initializer_list<path> pl) {
+        for(auto p : pl) in(p);
+        return *this;
     }
 
     void clear_inputs() {
@@ -166,8 +176,7 @@ public:
     }
 
     command_builder& definitions(initializer_list<definition_t> il) {
-        for(auto& d : il)
-            definition(d);
+        for(auto& d : il) definition(d);
         return *this;
     }
 
