@@ -4,6 +4,7 @@
 #include <optional>
 #include <set>
 #include "command.hpp"
+#include <variant>
 
 namespace gcc_like_driver {
 
@@ -97,17 +98,15 @@ protected:
     optional<path> working_directory;  // -working-directory='dir'
     optional<bool> verb;               // -v
 
-    struct input_file_t {
-        enum type_t {
-            source, library
-        } type;
-        string path;
-    };
-
-    vector<input_file_t> input_files;
     vector<path> include_paths; // -Idir
     vector<path> include_quote_paths; // -iquote dir
 public:
+	
+	using library_t = string;
+	using input_file_t = path;
+
+    vector<variant<library_t, input_file_t>> inputs;
+	
     struct definition_t {
         string name;
         optional<string> value;
@@ -150,20 +149,15 @@ public:
     }
 
     command_builder& in(path p) {
-        input_files.push_back(input_file_t{input_file_t::source, p.string()}); return *this;
+        inputs.push_back(input_file_t{ p }); return *this;
     }
 
     command_builder& in(std::initializer_list<path> pl) {
-        for(auto p : pl) in(p);
-        return *this;
+        for(auto p : pl) in(p); return *this;
     }
 
-    void clear_inputs() {
-        input_files.clear();
-    }
-
-    void library(string name) {
-        input_files.push_back(input_file_t{input_file_t::library, name});
+    void lib(string name) {
+        inputs.push_back(library_t{ name });
     }
 
     command_builder& include(path p) { include_paths.push_back(p); return *this; }
@@ -212,8 +206,16 @@ public:
         for(auto p : include_quote_paths)
             args.push_back("-iquote "+p.string());
         
-        for(auto p : input_files)
-            args.push_back(p.type == input_file_t::library ? "-l"+p.path : p.path);
+        for(auto& input : inputs) {
+			if(holds_alternative<library_t>(input)) {
+				auto& lib_name = get<library_t>(input);
+				args.push_back("-l"+lib_name);
+			}
+			else {
+				auto& in_file = get<input_file_t>(input);
+				args.push_back(in_file.string());
+			}
+		}
 
         return {name, args.begin(), args.end()};
     }
