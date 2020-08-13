@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
 
     auto cc = environment::cxx_compile_command_builder()
         .std(gcc_like_driver::cxx20)
-        .quote_include(root/"include")
+        .include(root/"include/cxx_exec")
         .in({root/"share/cxx_exec/cxx_exec_entry.cpp", cxx})
         .verbose(verbose)
         .out(exec);
