@@ -89,17 +89,17 @@ protected:
     string name;
 
     optional<debug_information_type> debug_information_type;
-    optional<input_type> input_type;   // -x
-    optional<output_type> m_output_type; // -c, -S, -E
-    optional<path> output;             // --output
-    optional<lang_std> m_std;            // --std='arg'
-    optional<string> compiler_files;   // -B'prefix'
-    optional<path> system_root;        // --sysroot'dir'
-    optional<path> working_directory;  // -working-directory='dir'
-    optional<bool> verb;               // -v
+    optional<input_type> input_type;    // -x
+    optional<output_type> m_output_type;// -c, -S, -E
+    optional<path> output;              // --output
+    optional<lang_std> m_std;           // --std='arg'
+    optional<string> compiler_files;    // -B'prefix'
+    optional<path> system_root;         // --sysroot'dir'
+    optional<path> working_directory;   // -working-directory='dir'
+    optional<bool> verb;                // -v
 
-    vector<path> include_paths; // -Idir
-    vector<path> include_quote_paths; // -iquote dir
+    vector<path> include_paths;         // -Idir
+    vector<path> include_quote_paths;   // -iquote dir
 public:
 	
 	using library_t = string;

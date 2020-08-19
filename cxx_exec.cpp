@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
         cout << "root: "+root.string()+"\n";
     }
 
-    path exec = absolute(temp_directory_path()) / to_string(getpid());
+    path exec = absolute(temp_directory_path()) / (to_string(getpid()) + environment::exec_extension);
 
     create_directories(path{exec}.remove_filename());
 
@@ -75,6 +75,8 @@ int main(int argc, char* argv[]) {
     try {
         environment::execute(exec_command);
     } catch(...) {} //We're not interested in this.
+
+    remove(exec);
 
     return EXIT_SUCCESS;
 }

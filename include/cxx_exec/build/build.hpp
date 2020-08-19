@@ -27,11 +27,12 @@ struct objects_t : std::vector<std::filesystem::path> {
     } 
 };
 
-template<path_iterator It>
-struct sources_view_t : std::span<std::filesystem::path> {
-    using std::span<std::filesystem::path>::span;
+struct sources_t : std::vector<std::filesystem::path> {
+    template<path_iterator It>
+    sources_t(It b, It e)
+    : std::vector<std::filesystem::path>::vector(b, e){}
 
-    auto& compile_to_objects(std::filesystem::path dir, gcc_like_driver::command_builder& cc) {
+    auto compile_to_objects(std::filesystem::path dir, gcc_like_driver::command_builder& cc) {
         objects_t objs;
         cc.out_type(gcc_like_driver::object_file);
 
@@ -49,12 +50,12 @@ struct sources_view_t : std::span<std::filesystem::path> {
 };
 
 template<path_iterator It>
-auto& sources(It begin, It end) {
-    return sources_view_t{begin, end};
+auto sources(It begin, It end) {
+    return sources_t{begin, end};
 }
 
 template<std::ranges::range R>
-auto& sources(R& r) {
+auto sources(const R& r) {
     return sources(r.begin(), r.end());
 }
 
