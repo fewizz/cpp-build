@@ -1,10 +1,13 @@
 #pragma once
 
 #include <filesystem>
+#include <initializer_list>
 #include <optional>
 #include <set>
 #include "command.hpp"
+#include <string_view>
 #include <variant>
+#include <ranges>
 
 namespace gcc_like_driver {
 
@@ -52,10 +55,10 @@ struct lang_std:lang_std_t {
     cxx20{gcc_like_driver::cxx20}, gnucxx20{gcc_like_driver::gnucxx20};
 };
 
-constexpr struct output_type_t {
-    string_view option;
-    constexpr output_type_t(const string_view option):option{option}{}
+constexpr struct output_type_t : string_view {
+    constexpr output_type_t(const auto option):string_view(option){}
 }
+def{""},
 object_file{"c"},
 assembler_code{"S"},
 preprocessed_src{"E"};
@@ -64,6 +67,7 @@ struct output_type:output_type_t {
     output_type(const output_type_t it):output_type_t{it}{}
 
     static constexpr output_type_t
+    def{""},
     object_file{"c"},
     assembler_code{"S"},
     preprocessed_src{"E"};
@@ -100,8 +104,10 @@ protected:
 
     vector<path> include_paths;         // -Idir
     vector<path> include_quote_paths;   // -iquote dir
+    optional<bool> m_make_rule;
+    optional<path> m_make_rule_file;
+
 public:
-	
 	using library_t = string;
 	using input_file_t = path;
 
@@ -117,6 +123,7 @@ public:
             return name < d.name;
         }
     };
+
 protected:
     set<definition_t> m_definitions;
 
@@ -131,29 +138,34 @@ public:
         m_std = s; return *this;
     }
 
-    void debug(gcc_like_driver::debug_information_type dit) {
-        debug_information_type = dit;
+    command_builder& debug(gcc_like_driver::debug_information_type dit) {
+        debug_information_type = dit; return *this;
     }
 
     command_builder& out(path p) { output = p; return *this; }
     path out() { return *output; }
 
     command_builder& out_type(output_type ot) {
-        m_output_type = ot;
+        if(ot == def) m_output_type.reset();
+        else m_output_type = ot;
         return *this;
     }
 
     command_builder& out(path p, output_type ot) {
-        out(p);
-        return out_type(ot);
+        out(p); return out_type(ot);
     }
 
     command_builder& in(path p) {
         inputs.push_back(input_file_t{ p }); return *this;
     }
 
-    command_builder& in(std::initializer_list<path> pl) {
-        for(auto p : pl) in(p); return *this;
+    template<ranges::range R>
+    command_builder& in(const R& ins) {
+        for(auto p : ins) in(p); return *this;
+    }
+
+    command_builder& in(initializer_list<path> ins) {
+        return in(ins);
     }
 
     void lib(string name) {
@@ -165,16 +177,23 @@ public:
     command_builder& quote_include(path p) { include_quote_paths.push_back(p); return *this; }
 
     command_builder& definition(definition_t d) {
-        m_definitions.insert(d);
-        return *this;
+        m_definitions.insert(d); return *this;
     }
 
     command_builder& definitions(initializer_list<definition_t> il) {
-        for(auto& d : il) definition(d);
-        return *this;
+        for(auto& d : il) definition(d); return *this;
     }
 
     command_builder& verbose(bool val) {verb = val; return *this;}
+
+    command_builder& make_rule(bool val) {
+        m_make_rule = val;
+        if(!val) m_make_rule_file.reset();
+        return *this;
+    }
+    command_builder& make_rule(path p) {
+        m_make_rule = true; m_make_rule_file = p; return *this;
+    }
 
     operator cmd::command() {
         vector<string> args;
@@ -182,7 +201,7 @@ public:
         if(debug_information_type)
             args.push_back("-"+string{debug_information_type->option});
         if(m_output_type)
-            args.push_back("-"+string{m_output_type->option});
+            args.push_back("-"+string{*m_output_type});
         if(verb and *verb)
             args.push_back("-v");
         if(working_directory)
@@ -191,6 +210,10 @@ public:
             args.push_back("-std="+string{m_std->name});
         if(output)
             args.push_back("--output="+output->string());
+        if(m_make_rule and *m_make_rule)
+            args.push_back("-M");
+        if(m_make_rule_file)
+            args.push_back("-MF "+m_make_rule_file->string());
         
         for(auto [name, def] : m_definitions) {
             string res = "\"-D"+name;

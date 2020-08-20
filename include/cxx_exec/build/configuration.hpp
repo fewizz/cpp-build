@@ -6,8 +6,6 @@
 #include <stdexcept>
 #include "../gcc_like_driver.hpp"
 
-namespace build {
-
 struct configuration {
     const std::string name;
     const std::function<void(gcc_like_driver::command_builder&)> applier;
@@ -37,5 +35,3 @@ std::vector<configuration> configuration::configurations = {
 
 configuration& configuration::release = configuration::by_name("release");
 configuration& configuration::debug = configuration::by_name("debug");
-
-}

@@ -102,12 +102,16 @@ struct archive_specifier : virtual cb_owner {
     R archive(std::filesystem::path p) requires (Prefix==archive_prefix::none)
 	{ cb.archive = p; return {std::move(cb)}; }
 
-    R to_archive(std::filesystem::path p) requires (Prefix==archive_prefix::to)
-	{ cb.archive = p; return {std::move(cb)}; }
+    R to_archive(std::filesystem::path p) requires (Prefix==archive_prefix::to) { 
+		cb.archive = p;
+		cb.operation.modifiers.insert(command_builder::operation_t::create_if_not_exists);
+		return {std::move(cb)};
+	}
 	
     R to_thin_archive(std::filesystem::path p) requires (Prefix==archive_prefix::to) {
 		cb.archive = p;
 		cb.operation.modifiers.insert(command_builder::operation_t::create_if_not_exists);
+		cb.operation.modifiers.insert(command_builder::operation_t::make_thin_archive);
 		return {std::move(cb)};
 	}
 

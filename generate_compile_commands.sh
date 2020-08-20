@@ -9,7 +9,7 @@ native_absolute_path() {
 printf "[\n\
     {\n\
         \"directory\": \"$(native_absolute_path $(dirname ${BASH_SOURCE[0]}))\",\n\
-        \"command\": \"$(native_absolute_path $(which clang++)) -std=c++20 -Iinclude cxx_exec.cpp\",\n\
+        \"command\": \"$(native_absolute_path $(which clang++)) -std=c++20 -Iinclude/cxx_exec cxx_exec.cpp\",\n\
         \"file\": \"cxx_exec.cpp\"\n\
     }\n\
 ]"\

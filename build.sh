@@ -1,2 +1,2 @@
 echo "compiling..."
-clang++ -std=c++20 -Iinclude -v -fuse-ld=lld -o $1/bin/cxx-exec cxx_exec.cpp
+g++ -std=c++20 -Iinclude/cxx_exec -v -o $1/bin/cxx-exec cxx_exec.cpp

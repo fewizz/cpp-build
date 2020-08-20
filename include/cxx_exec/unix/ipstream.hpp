@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
+#include "../command.hpp"
 
 namespace unix {
 
@@ -55,9 +56,9 @@ template<class CharT, class Traits = std::char_traits<CharT>>
 struct basic_ipstream : std::basic_istream<CharT, Traits> {
     unix::basic_pipebuf<CharT> filebuf;
 
-    basic_ipstream(std::string command)
+    basic_ipstream(cmd::command command)
     :
-    filebuf{popen(command.c_str(), "r")}
+    filebuf{popen(command.string().c_str(), "r")}
     {
         std::basic_ios<char>::init(&filebuf);
     }

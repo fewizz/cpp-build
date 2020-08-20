@@ -1,13 +1,15 @@
-#include "cxx_exec/gcc_like_driver.hpp"
-#include "cxx_exec/environment.hpp"
+#include "gcc_like_driver.hpp"
+#include "environment.hpp"
 #include "clap/gnu_clap.hpp"
 #include <filesystem>
 #include <algorithm>
 #include <stdexcept>
 #include <unistd.h>
+#include "build/build.hpp"
 
 using namespace std;
 using namespace filesystem;
+using namespace gcc_like_driver;
 
 #ifdef _WIN32
 #include <libloaderapi.h>
@@ -39,34 +41,42 @@ int main(int argc, char* argv[]) {
         throw runtime_error("c++ file doesn't exists");
 
     bool verbose, gdb;
+    string exec_out;
     gnu::clap clap;
     clap
         .flag("verbose", verbose)
-        .flag("gdb", gdb);
+        .flag("gdb", gdb)
+        .option("exec", exec_out);
 
     auto delimiter = find(args.begin()+1, args.end(), "--");
 
     clap.parse(args.begin()+1, delimiter);
 
     if(verbose) {
-        cout << "cxx_exec executable: "+cxx_exec.string()+"\n";
+        cout << "cxx-exec executable path: "+cxx_exec.string()+"\n";
         cout << "root: "+root.string()+"\n";
     }
 
-    path exec = absolute(temp_directory_path()) / (to_string(getpid()) + environment::exec_extension);
+    path exec = 
+        exec_out.empty() ?
+        absolute(temp_directory_path()) / (to_string(getpid()) + environment::exec_extension)
+        : exec_out;
 
-    create_directories(path{exec}.remove_filename());
+    if(not exists(exec) or last_write_time(cxx) > last_write_time(exec)) {
+        path exec_dir = path{exec}.remove_filename();
+        if(not exec_dir.empty() and not exists(exec_dir))
+            create_directories(exec_dir);
 
-    auto cc = environment::cxx_compile_command_builder()
-        .std(gcc_like_driver::cxx20)
-        .include(root/"include/cxx_exec")
-        .in({root/"share/cxx_exec/cxx_exec_entry.cpp", cxx})
-        .verbose(verbose)
-        .out(exec);
-    if(gdb) cc.debug(gcc_like_driver::gdb);
-    try {
-        environment::execute(cc);
-    } catch(...) {return EXIT_FAILURE;}
+        auto cc = environment::cxx_compile_command_builder()
+            .std(cxx20)
+            .include(root/"include/cxx_exec")
+            .verbose(verbose)
+            .debug(native);
+        try {
+            sources{{root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}}
+                .compile_to_executable(exec_out, cc);
+        } catch(...) {return EXIT_FAILURE;}
+    }
 
     auto args_begin = delimiter==args.end() ? args.end() : delimiter+1;
     auto exec_command = 
@@ -76,7 +86,8 @@ int main(int argc, char* argv[]) {
         environment::execute(exec_command);
     } catch(...) {} //We're not interested in this.
 
-    remove(exec);
+    if(exec_out.empty())
+        remove(exec);
 
     return EXIT_SUCCESS;
 }
