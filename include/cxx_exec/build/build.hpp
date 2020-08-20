@@ -101,7 +101,7 @@ public:
         return objs;
     }
 
-    auto compile_to_executable(std::filesystem::path out, gcc_like_driver::command_builder& cc) {
+    void compile_to_executable(std::filesystem::path out, gcc_like_driver::command_builder& cc) {
         auto dir = std::filesystem::path{out}.remove_filename();
 
         if(not dir.empty())
@@ -120,10 +120,11 @@ public:
                 break;
             }
         }
+        if(!compile) return;
+
         cc.inputs.clear();
         cc.in(*this);
         cc.out(out);
         environment::execute(cc);
-        return *this;
     }
 };

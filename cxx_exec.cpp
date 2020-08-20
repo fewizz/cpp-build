@@ -62,21 +62,16 @@ int main(int argc, char* argv[]) {
         absolute(temp_directory_path()) / (to_string(getpid()) + environment::exec_extension)
         : exec_out;
 
-    if(not exists(exec) or last_write_time(cxx) > last_write_time(exec)) {
-        path exec_dir = path{exec}.remove_filename();
-        if(not exec_dir.empty() and not exists(exec_dir))
-            create_directories(exec_dir);
-
-        auto cc = environment::cxx_compile_command_builder()
-            .std(cxx20)
-            .include(root/"include/cxx_exec")
-            .verbose(verbose)
-            .debug(native);
-        try {
-            sources{{root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}}
-                .compile_to_executable(exec_out, cc);
-        } catch(...) {return EXIT_FAILURE;}
-    }
+    auto cc = environment::cxx_compile_command_builder()
+        .std(cxx20)
+        .include(root/"include/cxx_exec")
+        .verbose(verbose)
+        .debug(native);
+    try {
+        sources{{root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}}
+            .compile_to_executable(exec_out, cc);
+    } catch(...) {return EXIT_FAILURE;}
+    
 
     auto args_begin = delimiter==args.end() ? args.end() : delimiter+1;
     auto exec_command = 
