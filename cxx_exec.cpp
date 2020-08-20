@@ -55,6 +55,7 @@ int main(int argc, char* argv[]) {
     if(verbose) {
         cout << "cxx-exec executable path: "+cxx_exec.string()+"\n";
         cout << "root: "+root.string()+"\n";
+        cout.flush();
     }
 
     path exec = 
@@ -69,7 +70,7 @@ int main(int argc, char* argv[]) {
         .debug(native);
     try {
         sources{{root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}}
-            .compile_to_executable(exec_out, cc);
+            .compile_to_executable(exec, cc);
     } catch(...) {return EXIT_FAILURE;}
     
 
