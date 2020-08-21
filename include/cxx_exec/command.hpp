@@ -3,6 +3,7 @@
 #include <string>
 #include <filesystem>
 #include <vector>
+#include <ranges>
 
 namespace cmd {
 
@@ -20,27 +21,20 @@ public:
     m_command{command+" "+arg.string()}
     {}
 
-    template<class ArgsIter>
-    command(std::string p, ArgsIter begin, ArgsIter end) {
-		std::string result;
-        result+=p;
-        for_each(begin, end, [&](auto& arg) {
-            result+=" "+std::string{arg};
-        });
-        m_command = result;
+    template<std::input_iterator It>
+    command(const auto& name, const It& beg, const It& end)
+    : command(name, std::ranges::subrange{beg, end}){}
+
+    command(const auto& name, const std::ranges::range auto& args) {
+        if constexpr(std::is_same_v<decltype(name), std::filesystem::path>)
+            m_command+=name.string();
+        else m_command+=name;
+
+        for(auto& arg : args) {
+            m_command+=" ";
+            m_command+=arg;
+        }
     }
-
-    template<class ArgsIter>
-    command(const char* p, ArgsIter begin, ArgsIter end)
-    :
-    command(std::string{p}, begin, end)
-    {}
-
-    template<class ArgsIter>
-    command(std::filesystem::path p, ArgsIter begin, ArgsIter end)
-    :
-    command(p.string(), begin, end)
-    {}
 
     std::string string() {
         return m_command;

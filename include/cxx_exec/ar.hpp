@@ -42,7 +42,7 @@ struct command_builder {
     operator cmd::command() {
         std::vector<std::string> args;
         if(!archive)
-            throw std::runtime_error("archive name is not specified for ar");
+            throw std::runtime_error("archive name is not specified");
         
         args.push_back(operation);
         args.push_back(archive->string());
@@ -50,7 +50,7 @@ struct command_builder {
         for(auto& mp : members)
             args.push_back(mp.string());
         
-        return {"ar", args.begin(), args.end()};
+        return {"ar", args};
     }
 };
 
@@ -139,18 +139,12 @@ insert() {
 }
 
 inline archive_specifier<archive_prefix::of, cb_owner>
-contents() {
-    return {command_builder{{command_builder::operation_t::display_table}}};
-}
+contents() { return {command_builder{{command_builder::operation_t::display_table}}}; }
 
 inline archive_specifier<archive_prefix::from, members_specifier>
-del() {
-    return {command_builder{{command_builder::operation_t::del}}};
-}
+del() { return {command_builder{{command_builder::operation_t::del}}}; }
 
 inline archive_specifier<archive_prefix::none, cb_owner>
-index() {
-    return {command_builder{{command_builder::operation_t::index}}};
-}
+index() { return {command_builder{{command_builder::operation_t::index}}}; }
 
 }

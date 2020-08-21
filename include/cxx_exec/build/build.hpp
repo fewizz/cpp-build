@@ -21,8 +21,7 @@ struct objects : std::set<std::filesystem::path> {
     using std::set<std::filesystem::path>::set;
 
     void to_thin_archive(std::filesystem::path path) {
-        if(std::filesystem::exists(path))
-            remove(path);
+        if(std::filesystem::exists(path)) remove(path);
         environment::execute(
             ar::insert()
             .to_thin_archive(path)
@@ -31,7 +30,7 @@ struct objects : std::set<std::filesystem::path> {
     }
 
     void to_thin_static_lib(std::filesystem::path dir, std::string_view name) {
-        to_thin_archive(dir/("lib"+std::string{name}+".a"));
+        to_thin_archive(dir.append("lib").concat(name).replace_extension(".a"));
     }
 };
 
@@ -40,16 +39,16 @@ struct sources : std::set<std::filesystem::path> {
 
     template<std::ranges::range R>
     sources(const R& r)
-    : sources(r.begin(), r.end()) {}
+    : std::set<std::filesystem::path>::set(r.begin(), r.end()) {}
 
 protected:
     bool outdated(std::filesystem::path src, std::filesystem::path out, gcc_like_driver::command_builder& cc) {
-        cc.make_rule(true);
-
         std::vector<std::filesystem::path> deps;
         {
-            unix::ipstream stream{cc};
-            cc.make_rule(false);
+            //cc.make_rule(true);
+            //cc.in(src);
+            unix::ipstream stream{cc.make_rule_creation({src})};
+            //cc.make_rule(false);
             stream.ignore(std::numeric_limits<std::streamsize>::max(), ':');
 
             while(stream) {
@@ -61,8 +60,7 @@ protected:
             }
         }
 
-        for(auto dep : deps)
-            if(last_write_time(dep) > last_write_time(out)) return true;
+        for(auto dep : deps) if(last_write_time(dep) > last_write_time(out)) return true;
         return false;
     }
 
@@ -71,19 +69,9 @@ protected:
         std::filesystem::path out,
         gcc_like_driver::command_builder& cc
     ) {
-        cc.inputs.clear();
-        cc.in(src);
-
-        bool compile;
-
-        if(not std::filesystem::exists(out))
-            compile = true;
-        else
-            compile = outdated(src, out, cc);
-
-        if(compile) {
+        if(not std::filesystem::exists(out) or outdated(src, out, cc)) {
             cc.out(out);
-            environment::execute(cc);
+            environment::execute(cc.compilation({src}));
         }
     }
 public:
@@ -104,27 +92,19 @@ public:
     void compile_to_executable(std::filesystem::path out, gcc_like_driver::command_builder& cc) {
         auto dir = std::filesystem::path{out}.remove_filename();
 
-        if(not dir.empty())
-            std::filesystem::create_directories(dir);
+        if(not dir.empty()) std::filesystem::create_directories(dir);
         
         cc.out_type(gcc_like_driver::def);
 
-        bool compile = false;
-        if(not std::filesystem::exists(out))
-            compile = true;
-        else for(std::filesystem::path src : *this) {
-            cc.inputs.clear();
-            cc.in(src);
-            if(outdated(src, out, cc)) {
-                compile = true;
-                break;
-            }
-        }
-        if(!compile) return;
+        auto has_outdated_srcs = [&]() {
+            for(std::filesystem::path src : *this)
+                if(outdated(src, out, cc)) return true;
+            return false;
+        };
 
-        cc.inputs.clear();
-        cc.in(*this);
+        if(std::filesystem::exists(out) and not has_outdated_srcs()) return;
+
         cc.out(out);
-        environment::execute(cc);
+        environment::execute(cc.compilation(*this));
     }
 };
