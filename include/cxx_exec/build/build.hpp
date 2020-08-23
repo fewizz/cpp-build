@@ -17,10 +17,10 @@
 template<class It>
 concept path_iterator = std::input_iterator<It> && std::same_as<std::filesystem::path, std::iter_value_t<It>>;
 
-struct objects : std::set<std::filesystem::path> {
+struct object_set : std::set<std::filesystem::path> {
     using std::set<std::filesystem::path>::set;
 
-    void to_thin_archive(std::filesystem::path path) {
+    void to_thin_archive(const std::filesystem::path& path) {
         if(std::filesystem::exists(path)) remove(path);
         environment::execute(
             ar::insert()
@@ -34,21 +34,22 @@ struct objects : std::set<std::filesystem::path> {
     }
 };
 
-struct sources : std::set<std::filesystem::path> {
+struct source_set : std::set<std::filesystem::path> {
     using std::set<std::filesystem::path>::set;
 
     template<std::ranges::range R>
-    sources(const R& r)
+    source_set(const R& r)
     : std::set<std::filesystem::path>::set(r.begin(), r.end()) {}
 
 protected:
-    bool outdated(std::filesystem::path src, std::filesystem::path out, gcc_like_driver::command_builder& cc) {
+    bool outdated(
+        const std::filesystem::path& src,
+        const std::filesystem::path& out,
+        const gcc_like_driver::command_builder& cc
+    ) {
         std::vector<std::filesystem::path> deps;
         {
-            //cc.make_rule(true);
-            //cc.in(src);
             unix::ipstream stream{cc.make_rule_creation({src})};
-            //cc.make_rule(false);
             stream.ignore(std::numeric_limits<std::streamsize>::max(), ':');
 
             while(stream) {
@@ -65,24 +66,23 @@ protected:
     }
 
     void check_deps_and_compile(
-        std::filesystem::path src,
-        std::filesystem::path out,
-        gcc_like_driver::command_builder& cc
+        const std::filesystem::path& src,
+        const gcc_like_driver::output_type& ot,
+        const std::filesystem::path& out,
+        const gcc_like_driver::command_builder& cc
     ) {
         if(not std::filesystem::exists(out) or outdated(src, out, cc)) {
-            cc.out(out);
-            environment::execute(cc.compilation({src}));
+            environment::execute(cc.compilation({src}, ot, out));
         }
     }
 public:
-    auto compile_to_objects(std::filesystem::path dir, gcc_like_driver::command_builder& cc) {
-        objects objs;
+    auto compile_to_objects(const std::filesystem::path& dir, const gcc_like_driver::command_builder& cc) {
+        object_set objs;
         std::filesystem::create_directories(dir);
 
-        cc.out_type(gcc_like_driver::object_file);
-        for(std::filesystem::path src : *this) {
+        for(const std::filesystem::path& src : *this) {
             auto out = dir/src.filename().replace_extension(".o");
-            check_deps_and_compile(src, out, cc);
+            check_deps_and_compile(src, gcc_like_driver::object_file, out, cc);
             objs.insert(out);
         }
 
@@ -93,8 +93,6 @@ public:
         auto dir = std::filesystem::path{out}.remove_filename();
 
         if(not dir.empty()) std::filesystem::create_directories(dir);
-        
-        cc.out_type(gcc_like_driver::def);
 
         auto has_outdated_srcs = [&]() {
             for(std::filesystem::path src : *this)
@@ -104,7 +102,6 @@ public:
 
         if(std::filesystem::exists(out) and not has_outdated_srcs()) return;
 
-        cc.out(out);
-        environment::execute(cc.compilation(*this));
+        environment::execute(cc.compilation(*this, gcc_like_driver::def, out));
     }
 };

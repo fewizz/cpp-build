@@ -30,10 +30,12 @@ static inline string current_exec_path() {
 int main(int argc, char* argv[]) {
     path cxx_exec = current_exec_path();
 
-    vector<string_view> args{argv+1, argv+argc};
+    // program parameters
+    vector<string_view> args{argv + 1, argv + argc};
 
-    if(args.empty()) throw runtime_error("c++ file not provided");
-    
+    if (args.empty())
+      throw runtime_error("c++ file not provided");
+
     path root = cxx_exec.parent_path().parent_path();
     path cxx = absolute(args[0]);
     if(not exists(cxx)) throw runtime_error("c++ file '"+cxx.string()+"' doesn't exists");
@@ -46,9 +48,9 @@ int main(int argc, char* argv[]) {
         .flag("gdb", gdb)
         .value("exec", exec);
 
-    auto delimiter = find(args.begin()+1, args.end(), "--");
+    auto delimiter = find(args.begin() + 1, args.end(), "--");
 
-    clap.parse(args.begin()+1, delimiter);
+    clap.parse(args.begin() + 1, delimiter);
 
     bool explicit_exec = not exec.empty();
 
@@ -66,14 +68,13 @@ int main(int argc, char* argv[]) {
         .verbose(verbose)
         .debug(native);
     try {
-        sources{{root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}}.compile_to_executable(exec, cc);
+        source_set{root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}.compile_to_executable(exec, cc);
     } catch(...) {return EXIT_FAILURE;}
-    
 
-    auto args_begin = delimiter==args.end() ? args.end() : delimiter+1;
-    auto exec_command = 
-        gdb ? cmd::command{"gdb", exec} : cmd::command{exec, args_begin, args.end()};
-    
+    auto args_begin = delimiter == args.end() ? args.end() : delimiter + 1;
+    auto exec_command = gdb ? cmd::command{"gdb", exec}
+                            : cmd::command{exec, args_begin, args.end()};
+
     try {
         environment::execute(exec_command);
     } catch(...) {} //We're not interested in this.

@@ -2,38 +2,55 @@
 
 #include <string>
 #include <filesystem>
+#include <string_view>
+#include <type_traits>
 #include <vector>
 #include <ranges>
+#include <variant>
+#include <concepts>
 
 namespace cmd {
 
 class command {
     std::string m_command;
+    //std::variant<std::string, std::path> m_command;
+    //std::vector<std::string> args;
 public:
 
     command(std::string command) 
-    :
-    m_command{command}
-    {}
+    : m_command{command} {}
 
-    command(std::string command, std::filesystem::path arg) 
-    :
-    m_command{command+" "+arg.string()}
-    {}
+    template<class T, class...Ts>
+    command(const T& t, const Ts&... ts)
+    : command(t, {ts...}) {}
 
     template<std::input_iterator It>
     command(const auto& name, const It& beg, const It& end)
     : command(name, std::ranges::subrange{beg, end}){}
 
     command(const auto& name, const std::ranges::range auto& args) {
-        if constexpr(std::is_same_v<decltype(name), std::filesystem::path>)
-            m_command+=name.string();
-        else m_command+=name;
+        struct to_string_t{
+            std::string_view operator()(const char* cstr) { return cstr; }
+            std::string_view operator()(std::string_view val) { return val; }
+            std::string_view operator()(const std::string& str) { return str; }
+            std::string operator()(const std::filesystem::path& path) { return path.string(); }
+        } to_string;
 
-        for(auto& arg : args) {
-            m_command+=" ";
-            m_command+=arg;
-        }
+        auto on_append = [&](auto action) {
+            action(to_string(name));
+            for(const auto& arg : args) {
+                //bool has_blanks = arg.find(' ') != std::string::npos;
+                action(" ");
+                //if(has_blanks) action("\"");
+                action(to_string(arg));
+                //if(has_blanks) action("\""); 
+            }
+        };
+
+        int size = 0;
+        on_append([&](std::string_view v){size+=v.size();});
+        m_command.reserve(size);
+        on_append([&](std::string_view v){m_command+=v;});
     }
 
     std::string string() {

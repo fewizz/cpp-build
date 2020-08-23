@@ -94,8 +94,8 @@ protected:
 
     optional<debug_information_type> debug_information_type;
     optional<input_type> input_type;    // -x
-    optional<output_type> m_output_type;// -c, -S, -E
-    optional<path> output;              // --output
+    //optional<output_type> m_output_type;// -c, -S, -E
+    //optional<path> output;              // --output
     optional<lang_std> m_std;           // --std='arg'
     optional<string> compiler_files;    // -B'prefix'
     optional<path> system_root;         // --sysroot'dir'
@@ -120,6 +120,18 @@ public:
         bool operator < (const definition_t& d) const {
             return name < d.name;
         }
+
+        std::string string() const {
+            std::string res{"-D "};
+            int def_size = name.size() + (value ? value->size() + 1 : 0);
+            res.reserve(res.size()+def_size);
+            res+=name;
+            if(value) {
+                res+='=';
+                res+=*value;
+            }
+            return res;
+        }
     };
 
 protected:
@@ -139,34 +151,6 @@ public:
     auto& debug(const gcc_like_driver::debug_information_type& dit) {
         debug_information_type = dit; return *this;
     }
-
-    auto& out(const path& p) { output = p; return *this; }
-    const path& out() { return *output; }
-
-    auto& out_type(const output_type& ot) {
-        if(ot == def) m_output_type.reset();
-        else m_output_type = ot;
-        return *this;
-    }
-
-    auto& out(const path& p, const output_type& ot) {
-        out(p); return out_type(ot);
-    }
-
-    /*auto& in(const path& p) {
-        inputs.clear();
-        inputs.push_back(p); return *this;
-    }
-
-    template<ranges::range R>
-    auto& in(const R& ins) {
-        inputs.clear();
-        for(auto p : ins) inputs.push_back(p); return *this;
-    }
-
-    auto& in(initializer_list<path>&& ins) {
-        return in(ins);
-    }*/
 
     auto& lib(string_view name) {
         m_libs.emplace_back(name);
@@ -192,73 +176,58 @@ public:
 
     auto& verbose(bool val) {verb = val; return *this;}
 
-    /*auto& make_rule(bool val) {
-        m_make_rule = val;
-        if(!val) m_make_rule_file.reset();
-        return *this;
+    cmd::command compilation(const initializer_list<path>& inputs, const output_type_t& ot, const path& out) const {
+        return {name, args_to_string_vec(inputs, ot, out)};
     }
 
-    auto& make_rule(const path& p) {
-        m_make_rule = true; m_make_rule_file = p; return *this;
-    }*/
-    cmd::command compilation(const initializer_list<path>& inputs) {
-        return compilation(inputs);
+    cmd::command compilation(const ranges::range auto& inputs, const output_type_t& ot, const path& out) const {
+        return {name, args_to_string_vec(inputs, ot, out)};
     }
 
-    cmd::command compilation(const ranges::range auto& inputs) {
-        return {name, args_to_string_vec(inputs)};
-    }
+    cmd::command make_rule_creation(const initializer_list<path>& inputs) const { return _mrc(inputs); }
 
-    cmd::command make_rule_creation(const initializer_list<path>& inputs) {
-        return make_rule_creation(inputs);
-    }
-
-    cmd::command make_rule_creation(const ranges::range auto& inputs) {
-        auto& args = args_to_string_vec(inputs, true);
+    cmd::command make_rule_creation(const ranges::range auto& inputs) const { return _mrc(inputs); }
+protected:
+    cmd::command _mrc(const ranges::range auto& inputs) const {
+        auto args = args_to_string_vec(inputs, std::nullopt, std::nullopt);
         args.push_back("-M");
         return {name, args};
     }
-protected:
-    vector<string> args_to_string_vec(const ranges::range auto& inputs, bool make_rule=false) {
+
+    vector<string> args_to_string_vec(
+        const ranges::range auto& inputs,
+        const std::optional<output_type> ot,
+        const std::optional<path> output
+    ) const {
         vector<string> args;
 
-        //args.push_back(name);
         if(debug_information_type)
-            args.push_back("-"+string{debug_information_type->option});
-        if(m_output_type)
-            args.push_back("-"+string{*m_output_type});
+            args.emplace_back("-"+string{debug_information_type->option});
+        if(ot and *ot != def)
+            args.emplace_back("-"+string{*ot});
         if(verb and *verb)
-            args.push_back("-v");
+            args.emplace_back("-v");
         if(working_directory)
-            args.push_back("-working-directory="+working_directory->string());
+            args.emplace_back("-working-directory="+working_directory->string());
         if(m_std)
-            args.push_back("-std="+string{m_std->name});
+            args.emplace_back("-std="+string{m_std->name});
         if(output)
-            args.push_back("--output="+output->string());
-        /*if(m_make_rule and *m_make_rule)
-            args.push_back("-M");
-        if(m_make_rule_file)
-            args.push_back("-MF "+m_make_rule_file->string());
-        */
-        for(auto [name, def] : m_definitions) {
-            string res = "\"-D"+name;
-            if(def)
-                res+="="+*def;
-            res+="\"";
-            args.push_back(res);
-        }
+            args.emplace_back("--output="+output->string());
+        
+        for(const auto& def : m_definitions)
+            args.emplace_back(def.string());
         
         for(auto p : include_paths)
-            args.push_back("-I"+p.string());
+            args.emplace_back("-I"+p.string());
         
         for(auto p : include_quote_paths)
-            args.push_back("-iquote "+p.string());
+            args.emplace_back("-iquote "+p.string());
         
         for(auto& input : inputs)
-            args.push_back(input.string());
+            args.emplace_back(input.string());
         
         for(auto& lib : m_libs)
-            args.push_back("-l"+lib);
+            args.emplace_back("-l"+lib);
 
         return args;
     }
