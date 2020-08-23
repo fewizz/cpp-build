@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ios>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -26,29 +27,37 @@ struct basic_pipebuf : std::basic_streambuf<CharT, Traits> {
         pclose(file);
     }
 
+    int_type underflow() override {
+        _advance();
+        char ch = fgetc(file);
+        ungetc(ch, file);
+        return ch;
+    }
+
+protected:
     int_type uflow() override {
-        auto diff = this->gptr() - prev_read;
-        if(diff) {
-            fseek(file, diff, SEEK_CUR);
-            prev_read+=diff;
-        }
+        _advance();
         char ch = fgetc(file);
         if(ch != EOF) { 
-            this->setg(this->eback(), this->gptr()+1, this->egptr()+1);
+            this->setg(this->eback(), this->gptr()+1, this->gptr()+1);
             prev_read++;
         }
         return ch;
     }
 
-    int_type underflow() override {
-        auto diff = this->gptr() - prev_read;
-        if(diff) {
+    std::streamsize xsgetn(CharT* s, std::streamsize count) override {
+        _advance();
+        auto r = fread(s, sizeof(CharT), count, file);
+        prev_read+=r;
+        this->setg(this->eback(), this->gptr()+r, this->gptr()+r);
+        return r;
+    }
+
+    void _advance() {
+        if(auto diff = this->gptr() - prev_read) {
             fseek(file, diff, SEEK_CUR);
             prev_read+=diff;
         }
-        char ch = fgetc(file);
-        ungetc(ch, file);
-        return ch;
     }
 };
 

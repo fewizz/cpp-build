@@ -17,7 +17,9 @@ void exec(vector<string> args) {
 
     cout << "using << operator:\n";
     unix::ipstream s1{args[0]};
-    std::string str;
-    s1 >> str;
-    cout << str;
+    while(s1) {
+		std::string str;
+		s1 >> str;
+		cout << str << "\n";
+	}
 }
