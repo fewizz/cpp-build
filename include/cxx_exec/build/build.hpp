@@ -7,6 +7,7 @@
 #include <set>
 #include "../environment.hpp"
 #include <stdio.h>
+#include <string_view>
 #include <vector>
 #include "../ar.hpp"
 #include <ranges>
@@ -40,6 +41,14 @@ struct source_set : std::set<std::filesystem::path> {
     template<std::ranges::range R>
     source_set(const R& r)
     : std::set<std::filesystem::path>::set(r.begin(), r.end()) {}
+
+    static inline source_set from_dir(std::filesystem::path dir, std::string_view ext) {
+        source_set s;
+        for(auto de : std::filesystem::directory_iterator{dir})
+            if(de.is_regular_file() and de.path().extension() == ext)
+                s.insert(de.path());
+        return s;
+    }
 
 protected:
     bool outdated(

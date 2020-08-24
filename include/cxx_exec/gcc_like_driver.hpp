@@ -135,7 +135,7 @@ public:
     };
 
 protected:
-    set<definition_t> m_definitions;
+    vector<definition_t> m_definitions;
 
 public:
 
@@ -167,7 +167,7 @@ public:
     auto& quote_include(const path& p) { include_quote_paths.push_back(p); return *this; }
 
     auto& definition(const definition_t& d) {
-        m_definitions.insert(d); return *this;
+        m_definitions.push_back(d); return *this;
     }
 
     auto& definitions(initializer_list<definition_t>&& il) {

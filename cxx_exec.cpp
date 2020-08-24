@@ -42,15 +42,12 @@ int main(int argc, char* argv[]) {
 
     bool verbose, gdb;
     path exec;
-    gnu::clap clap;
-    clap
+    auto delimiter = find(args.begin() + 1, args.end(), "--");
+    gnu::clap{}
         .flag("verbose", verbose)
         .flag("gdb", gdb)
-        .value("exec", exec);
-
-    auto delimiter = find(args.begin() + 1, args.end(), "--");
-
-    clap.parse(args.begin() + 1, delimiter);
+        .value("exec", exec)
+        .parse(args.begin() + 1, delimiter);
 
     bool temp_exec = exec.empty();
 
@@ -61,7 +58,10 @@ int main(int argc, char* argv[]) {
     }
 
     if (temp_exec)
-        exec = absolute(temp_directory_path()) / (to_string(getpid()) + environment::exec_extension);
+        exec = absolute(temp_directory_path()) / to_string(getpid());
+
+    if(exec.extension().empty())
+        exec.replace_extension(environment::exec_extension);
 
     auto cc = environment::cxx_compile_command_builder()
         .std(cxx20)
@@ -80,8 +80,7 @@ int main(int argc, char* argv[]) {
         environment::execute(exec_command);
     } catch(...) {} //We're not interested in this.
 
-    if (temp_exec)
-      remove(exec);
+    if (temp_exec) remove(exec);
 
     return EXIT_SUCCESS;
 }

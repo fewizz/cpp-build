@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
-#include <ranges>
 #include <map>
 #include "../gcc_like_driver.hpp"
 
@@ -14,6 +13,13 @@ struct configuration {
 
     bool operator==(const configuration& other) const {
         return this == &other;
+    }
+
+    std::string_view name() {
+        for(const auto& c : configurations)
+            if(c.second == *this)
+                return c.first;
+        throw std::runtime_error("configuration isn't registered");
     }
 
     void apply(gcc_like_driver::command_builder& cc) const { applier(cc); }
