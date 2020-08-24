@@ -65,7 +65,7 @@ template<class CharT, class Traits = std::char_traits<CharT>>
 struct basic_ipstream : std::basic_istream<CharT, Traits> {
     unix::basic_pipebuf<CharT> filebuf;
 
-    basic_ipstream(cmd::command command)
+    basic_ipstream(const cmd::command& command)
     :
     filebuf{popen(command.string().c_str(), "r")}
     {

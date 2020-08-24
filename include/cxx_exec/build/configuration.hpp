@@ -1,13 +1,15 @@
 #pragma once
 
 #include <functional>
+#include <initializer_list>
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <ranges>
+#include <map>
 #include "../gcc_like_driver.hpp"
 
 struct configuration {
-    const std::string name;
     const std::function<void(gcc_like_driver::command_builder&)> applier;
 
     bool operator==(const configuration& other) const {
@@ -16,21 +18,28 @@ struct configuration {
 
     void apply(gcc_like_driver::command_builder& cc) const { applier(cc); }
 	
-	static std::vector<configuration> configurations;
+	static std::map<std::string, configuration>  configurations;
 	
-	static inline configuration& by_name(std::string_view name) {
-		auto conf = find_if(configurations.begin(), configurations.end(), [=](auto& conf){return conf.name==name;});
-		if(conf == configurations.end()) throw std::runtime_error("can't find configuration with name '"+std::string{name}+"'");
-		return *conf;
+	static inline configuration& by_name(const std::string& name) {
+        auto conf_iter = configurations.find(name);
+		if(conf_iter == configurations.end())
+            throw std::runtime_error("can't find configuration with name '"+std::string{name}+"'");
+		return conf_iter->second;
 	}
 	
 	static configuration& release;
 	static configuration& debug;
 };
 
-std::vector<configuration> configuration::configurations = {
-    { "release", [](gcc_like_driver::command_builder& comp) { } },
-    { "debug", [](gcc_like_driver::command_builder& comp) { comp.debug(gcc_like_driver::native); } }
+std::map<std::string, configuration> configuration::configurations = {
+    {
+        "release",
+        { [](gcc_like_driver::command_builder& comp) { } }
+    },
+    {
+        "debug",
+        { [](gcc_like_driver::command_builder& comp) { comp.debug(gcc_like_driver::native); }  }
+    }
 };
 
 configuration& configuration::release = configuration::by_name("release");

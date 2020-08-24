@@ -53,7 +53,7 @@ public:
         on_append([&](std::string_view v){m_command+=v;});
     }
 
-    std::string string() {
+    std::string string() const {
         return m_command;
     }
 };

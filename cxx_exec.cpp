@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
 
     clap.parse(args.begin() + 1, delimiter);
 
-    bool explicit_exec = not exec.empty();
+    bool temp_exec = exec.empty();
 
     if(verbose) {
         cout << "cxx-exec executable path: "+cxx_exec.string()+"\n";
@@ -60,7 +60,8 @@ int main(int argc, char* argv[]) {
         cout.flush();
     }
 
-    if(not explicit_exec) exec = absolute(temp_directory_path()) / (to_string(getpid()) + environment::exec_extension);
+    if (temp_exec)
+        exec = absolute(temp_directory_path()) / (to_string(getpid()) + environment::exec_extension);
 
     auto cc = environment::cxx_compile_command_builder()
         .std(cxx20)
@@ -79,8 +80,8 @@ int main(int argc, char* argv[]) {
         environment::execute(exec_command);
     } catch(...) {} //We're not interested in this.
 
-    if(not explicit_exec)
-        remove(exec);
+    if (temp_exec)
+      remove(exec);
 
     return EXIT_SUCCESS;
 }
