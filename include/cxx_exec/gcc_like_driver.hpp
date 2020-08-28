@@ -114,12 +114,6 @@ public:
     struct definition_t {
         string name;
         optional<string> value;
-        bool operator == (const definition_t& d) const {
-            return name==d.name;
-        }
-        bool operator < (const definition_t& d) const {
-            return name < d.name;
-        }
 
         std::string string() const {
             std::string res{"-D "};
@@ -138,7 +132,6 @@ protected:
     vector<definition_t> m_definitions;
 
 public:
-
     command_builder(string_view name) : name{name}{};
 
     command_builder(string_view name, const lang_std& std)
@@ -158,16 +151,24 @@ public:
     }
 
     auto& libs(initializer_list<string_view>&& ins) {
-        m_libs.clear();
         for(auto l : ins) lib(l); return *this;
     }
 
     auto& include(const path& p) { include_paths.push_back(p); return *this; }
 
+    auto& include(initializer_list<path>&& includes) {
+        include_paths.insert(include_paths.end(), includes);
+        return *this;    
+    }
+
     auto& quote_include(const path& p) { include_quote_paths.push_back(p); return *this; }
 
     auto& definition(const definition_t& d) {
         m_definitions.push_back(d); return *this;
+    }
+    
+    auto& definition(string def) { // yep, will need to copy anyway
+        return definition(definition_t{std::move(def)});
     }
 
     auto& definitions(initializer_list<definition_t>&& il) {

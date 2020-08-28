@@ -6,6 +6,8 @@
 #include <vector>
 #include <set>
 #include "command.hpp"
+#include <ranges>
+#include <iterator>
 
 namespace ar {
 
@@ -75,8 +77,11 @@ struct members_specifier : virtual cb_owner {
 		cb.members.push_back(m); return {std::move(cb)};
 	}
 
-    template<class Iter>
-    members_specifier members(Iter begin, Iter end) {
+	template<std::ranges::range R>
+    members_specifier members(const R& r) { return members(r.begin(), r.end()); }
+
+    template<std::input_iterator It>
+    members_specifier members(It begin, It end) {
         cb.members.insert(cb.members.end(), begin, end); return {std::move(cb)}; 
     }
 

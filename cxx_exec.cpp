@@ -51,17 +51,19 @@ int main(int argc, char* argv[]) {
 
     bool temp_exec = exec.empty();
 
+    if (temp_exec)
+        exec = temp_directory_path() / to_string(getpid());
+
+    exec = absolute(exec);
+    if(exec.extension().empty())
+        exec.replace_extension(environment::exec_extension);
+
     if(verbose) {
         cout << "cxx-exec executable path: "+cxx_exec.string()+"\n";
         cout << "root: "+root.string()+"\n";
+        cout << "exec path: "+exec.string()+"\n";
         cout.flush();
     }
-
-    if (temp_exec)
-        exec = absolute(temp_directory_path()) / to_string(getpid());
-
-    if(exec.extension().empty())
-        exec.replace_extension(environment::exec_extension);
 
     auto cc = environment::cxx_compile_command_builder()
         .std(cxx20)
