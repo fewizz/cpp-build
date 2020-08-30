@@ -96,7 +96,7 @@ protected:
     optional<input_type> input_type;    // -x
     //optional<output_type> m_output_type;// -c, -S, -E
     //optional<path> output;              // --output
-    optional<lang_std> m_std;           // --std='arg'
+    optional<string> m_std;           // --std='arg'
     optional<string> compiler_files;    // -B'prefix'
     optional<path> system_root;         // --sysroot'dir'
     optional<path> working_directory;   // -working-directory='dir'
@@ -135,10 +135,14 @@ public:
     command_builder(string_view name) : name{name}{};
 
     command_builder(string_view name, const lang_std& std)
-        :name{name}, m_std{std}{}
+        :name{name}, m_std{std.name}{}
 
-    auto& std(const gcc_like_driver::lang_std& s) {
-        m_std = s; return *this;
+    auto& std(const gcc_like_driver::lang_std& std) {
+        m_std = std.name; return *this;
+    }
+
+    auto& std(string_view std) {
+        m_std = std; return *this;
     }
 
     auto& debug(const gcc_like_driver::debug_information_type& dit) {
@@ -211,7 +215,7 @@ protected:
         if(working_directory)
             args.emplace_back("-working-directory="+working_directory->string());
         if(m_std)
-            args.emplace_back("-std="+string{m_std->name});
+            args.emplace_back("-std="+*m_std);
         if(output)
             args.emplace_back("--output="+output->string());
         

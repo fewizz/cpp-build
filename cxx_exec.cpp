@@ -41,14 +41,17 @@ int main(int argc, char* argv[]) {
     if(not exists(cxx)) throw runtime_error("c++ file '"+cxx.string()+"' doesn't exists");
 
     bool verbose, gdb;
+    string std;
     path exec;
     auto delimiter = find(args.begin() + 1, args.end(), "--");
     gnu::clap{}
         .flag("verbose", verbose)
         .flag("gdb", gdb)
         .value("exec", exec)
+        .value("standard", std)
         .parse(args.begin() + 1, delimiter);
 
+    if(std.empty()) std = "c++20";
     bool temp_exec = exec.empty();
 
     if (temp_exec)
@@ -66,7 +69,7 @@ int main(int argc, char* argv[]) {
     }
 
     auto cc = environment::cxx_compile_command_builder()
-        .std(cxx20)
+        .std(std)
         .include(root/"include/cxx_exec")
         .verbose(verbose)
         .debug(native);
