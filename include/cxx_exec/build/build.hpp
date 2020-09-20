@@ -124,7 +124,6 @@ public:
         };
 
         if(std::filesystem::exists(out) and not has_outdated_srcs()) return;
-
         environment::execute(cc.compilation(*this, gcc_like_driver::def, out));
     }
 };

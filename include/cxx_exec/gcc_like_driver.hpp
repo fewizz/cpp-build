@@ -94,8 +94,6 @@ protected:
 
     optional<debug_information_type> debug_information_type;
     optional<input_type> input_type;    // -x
-    //optional<output_type> m_output_type;// -c, -S, -E
-    //optional<path> output;              // --output
     optional<string> m_std;           // --std='arg'
     optional<string> compiler_files;    // -B'prefix'
     optional<path> system_root;         // --sysroot'dir'
@@ -104,10 +102,6 @@ protected:
 
     vector<path> include_paths;         // -Idir
     vector<path> include_quote_paths;   // -iquote dir
-    //optional<bool> m_make_rule;
-    //optional<path> m_make_rule_file;
-
-    //vector<path> inputs;
     vector<string> m_libs;
 public:
 
@@ -163,6 +157,10 @@ public:
     auto& include(initializer_list<path>&& includes) {
         include_paths.insert(include_paths.end(), includes);
         return *this;    
+    }
+
+    auto& include(const ranges::range auto& range) {
+        for(const auto& v : range) include_paths.push_back(v); return *this;
     }
 
     auto& quote_include(const path& p) { include_quote_paths.push_back(p); return *this; }

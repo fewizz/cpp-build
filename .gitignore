@@ -1,3 +1,4 @@
-./build/
+build/
+!./include/cxx_exec/build/
 .clangd/
 compile_commands.json
