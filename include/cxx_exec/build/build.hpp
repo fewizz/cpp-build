@@ -19,9 +19,11 @@
 template<class It>
 concept path_iterator = std::input_iterator<It> && std::same_as<std::filesystem::path, std::iter_value_t<It>>;
 
+using paths_relation = std::set<std::pair<std::filesystem::path, std::filesystem::path>>;
+
 template<class MostDerived>
 struct file_path_set : std::set<std::filesystem::path> {
-    using std::set<std::filesystem::path>::set;
+    using set::set;
 
     MostDerived include(std::filesystem::path dir, std::string_view ext) {
         for(auto de : std::filesystem::directory_iterator{dir})
@@ -30,11 +32,25 @@ struct file_path_set : std::set<std::filesystem::path> {
         return *this;
     }
 
+    /*auto map(std::function<std::filesystem::path(std::filesystem::path)> map_f) {
+
+    }*/
+
 protected:
     void throw_if_empty() {
         if(empty()) throw std::runtime_error("file_path_set is empty");
     }
 };
+
+/*struct file_path_relation_set
+: std::set<
+    std::pair<
+        std::filesystem::path,
+        std::filesystem::path
+    >
+> {
+    using set::set;
+};*/
 
 struct object_set : file_path_set<object_set> {
     using file_path_set::file_path_set;
@@ -96,19 +112,30 @@ protected:
         }
     }
 public:
-    auto compile_to_objects(const std::filesystem::path& dir, const gcc_like_driver::command_builder& cc) {
+    auto compile_to_objects(
+        std::function<std::filesystem::path(std::filesystem::path)> map,
+        const gcc_like_driver::command_builder& cc
+    ) {
         throw_if_empty();
         object_set objs;
-        
-        std::filesystem::create_directories(dir);
 
         for(const std::filesystem::path& src : *this) {
-            auto out = dir/src.filename().replace_extension(".o");
+            auto out = map(src);
+            std::filesystem::create_directories(
+                std::filesystem::path{out}.remove_filename()
+            );
             check_deps_and_compile(src, gcc_like_driver::object_file, out, cc);
             objs.insert(out);
         }
 
         return objs;
+    }
+
+    auto compile_to_objects(const std::filesystem::path& dir, const gcc_like_driver::command_builder& cc) {
+        return compile_to_objects(
+            [&](std::filesystem::path p){ return dir/p.replace_extension(".o"); },
+            cc
+        );
     }
 
     void compile_to_executable(const std::filesystem::path out, const gcc_like_driver::command_builder& cc) {

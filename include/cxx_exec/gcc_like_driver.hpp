@@ -6,6 +6,7 @@
 #include <set>
 #include "command.hpp"
 #include <string_view>
+#include <type_traits>
 #include <variant>
 #include <ranges>
 
@@ -159,7 +160,9 @@ public:
         return *this;    
     }
 
-    auto& include(const ranges::range auto& range) {
+    template<ranges::range R>
+    requires std::is_same_v<std::remove_cvref_t<std::ranges::range_value_t<R>>, std::filesystem::path>
+    auto& include(const R& range) {
         for(const auto& v : range) include_paths.push_back(v); return *this;
     }
 
@@ -169,7 +172,7 @@ public:
         m_definitions.push_back(d); return *this;
     }
     
-    auto& definition(string def) { // yep, will need to copy anyway
+    auto& definition(string def) {
         return definition(definition_t{std::move(def)});
     }
 

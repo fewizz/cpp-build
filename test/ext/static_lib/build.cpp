@@ -1,9 +1,9 @@
+#include "build/build.hpp"
 #include "ext/static_lib.hpp"
 
-static_lib configure(gnu::clap& clap) {
-    return {
-        "code",
-        {"include"},
-        {"code.cpp"}
-    };
+string name() { return "code"; }
+source_set sources() { return { "code.cpp" }; }
+
+void configure(clap& clap, command_builder& cc) {
+    cc.include("include");
 }
