@@ -3,6 +3,7 @@
 #include <string>
 #include "../build/build.hpp"
 #include "../build/configuration.hpp"
+#include "ar.hpp"
 #include "clap/gnu_clap.hpp"
 #include "../environment.hpp"
 #include "../gcc_like_driver.hpp"
@@ -13,7 +14,7 @@ using namespace gnu;
 using namespace gcc_like_driver;
 
 string name();
-source_set sources();
+vector<path> sources();
 
 void info(auto str) {
     cout << "["+name()+"] " << str << "\n" << flush;
@@ -50,11 +51,21 @@ void exec(vector<string> args) {
     auto objects_dir = config_dir/"objects";
     create_directories(objects_dir);
 
-    if(on_pre_build)
-        on_pre_build(config_dir);
+    if(on_pre_build) on_pre_build(config_dir);
 
     info("compile");
-    object_set objs = sources().compile_to_objects(objects_dir, cc);
+
+    for(auto sp : sources()) {
+        environment::execute(
+            cc.compilation({sp}, object_file, objects_dir/sp.filename().replace_extension(".o"))
+        );
+    }
     info("create thin static lib");
-    objs.to_thin_static_lib(config_dir, name());
+
+    environment::execute(
+        ar::command_builder{
+            config_dir/(name() + ".a"),
+            ar::insert{}.verbose().make_thin_archive()
+        }.members(sources())
+    );
 }

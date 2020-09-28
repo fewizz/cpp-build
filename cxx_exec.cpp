@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
         .verbose(verbose)
         .debug(native);
     try {
-        source_set{root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}.compile_to_executable(exec, cc);
+        compile({root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}).to(exec).with(cc);
     } catch(...) {return EXIT_FAILURE;}
 
     auto args_begin = delimiter == args.end() ? args.end() : delimiter + 1;

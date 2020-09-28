@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <initializer_list>
+#include <memory>
 #include <string>
 #include <optional>
 #include <filesystem>
@@ -11,145 +14,99 @@
 
 namespace ar {
 
-struct command_builder {
-	
-    struct operation_t {
-		using code_t = char;
-		static constexpr code_t
-			del = 'd', move = 'm', print = 'p',
-			append = 'q', replace = 'r', index = 's',
-			display_table = 't', extract = 'x';
-		
-		using modifier_t = char;
-		static constexpr modifier_t
-			create_if_not_exists = 'c',
-			create_index = 's',
-			make_thin_archive = 'T',
-			verbose = 'v';
-		
-        code_t code;
-        std::set<modifier_t> modifiers;
+using namespace std;
+using namespace filesystem;
 
-        operator std::string() {
-            std::string result{"-"};
-            result+=code;
-            for(auto m : modifiers) result+=m;
-            return result;
-        }
-    } operation;
-    
-    std::optional<std::filesystem::path> archive;
-    std::vector<std::filesystem::path> members;
+struct operation_t {
+	char code;
+	vector<char> modifiers;
+	string relpos;
+	int m_count = -1;
+
+	auto create_if_not_exists() { modifiers.push_back('c'); return *this; }
+	auto create_index() { modifiers.push_back('s'); return *this; }
+	auto do_not_create_index() { modifiers.push_back('S'); return *this; }
+	auto make_thin_archive() { modifiers.push_back('T'); return *this; }
+	auto verbose() { modifiers.push_back('v'); return *this; }
+	auto show_version() { modifiers.push_back('V'); return *this; }
+	auto deterministic_mode() { modifiers.push_back('D'); return *this; }
+	auto truncate_names() { modifiers.push_back('f'); return *this; }
+	auto preserve_original_dates() { modifiers.push_back('o'); return *this; }
+protected:
+	auto after(string mem) { modifiers.push_back('a'); relpos = mem; return *this; }
+	auto before(string mem) { modifiers.push_back('b'); relpos = mem; return *this; }
+	auto count(int v) { m_count = v; return *this; }
+};
+
+struct del : operation_t {
+	del():operation_t{'d'}{}
+	using operation_t::count;
+};
+struct print : operation_t {
+	print():operation_t{'p'}{}
+};
+struct quick_append : operation_t {
+	quick_append():operation_t{'q'}{}
+};
+struct display_table : operation_t {
+	display_table():operation_t{'t'}{}
+};
+struct extract : operation_t {
+	extract():operation_t{'x'}{}
+	using operation_t::count;
+};
+struct move : operation_t {
+	move():operation_t{'m'}{}
+	using operation_t::after;
+	using operation_t::before;
+};
+struct insert : operation_t {
+	insert():operation_t{'r'}{}
+	using operation_t::after;
+	using operation_t::before;
+};
+
+struct command_builder {
+    path archive;
+	unique_ptr<operation_t> operation;
+    vector<path> m_members;
+
+	template<class Op>
+	command_builder(path archive, Op operation)
+	:archive{archive}, operation{make_unique<operation_t>(operation)} {}
+
+	auto& members(initializer_list<path> ms) {
+		m_members.insert(m_members.end(), ms);
+		return *this;
+	}
+
+	template<ranges::range R>
+	auto& members(const R& ms) {
+		m_members.insert(m_members.end(), ms.begin(), ms.end());
+		return *this;
+	}
 
     operator cmd::command() {
-        std::vector<std::string> args;
-        if(!archive)
-            throw std::runtime_error("archive name is not specified");
+        vector<string> args;
         
-        args.push_back(operation);
-        args.push_back(archive->string());
+		string res{"-"};
+		res += operation->code;
+
+        for(auto m : operation->modifiers)
+			res += m;
+
+		args.push_back(res);
+		if(not operation->relpos.empty())
+			args.push_back(operation->relpos);
+		if(operation->m_count != -1)
+			args.push_back(to_string(operation->m_count));
         
-        for(auto& mp : members)
-            args.push_back(mp.string());
+		args.push_back(archive.string());
+
+        for(auto& m : m_members) args.push_back(m.string());
         
         return {"ar", args};
     }
 };
-
-struct cb_owner {
-	command_builder cb;
-	
-	cb_owner(){}
-	cb_owner(command_builder&& cb):cb{std::move(cb)}{}
-	
-	operator cmd::command() { return cb; }
-};
-
-template<class... Ts>
-struct multibase : virtual cb_owner, Ts... {
-	multibase(command_builder&& v):cb_owner{std::forward<command_builder>(v)}{};
-};
-
-struct members_specifier : virtual cb_owner {
-	using cb_owner::cb_owner;
-	
-    members_specifier member(std::filesystem::path m) {
-		cb.members.push_back(m); return {std::move(cb)};
-	}
-
-	template<std::ranges::range R>
-    members_specifier members(const R& r) { return members(r.begin(), r.end()); }
-
-    template<std::input_iterator It>
-    members_specifier members(It begin, It end) {
-        cb.members.insert(cb.members.end(), begin, end); return {std::move(cb)}; 
-    }
-
-    operator cmd::command() { return cb; }
-};
-
-template<class R>
-struct verbose_modifier : virtual cb_owner {
-	using cb_owner::cb_owner;
-	
-	R verbosely() {
-		cb.operation.modifiers.insert(command_builder::operation_t::verbose);
-		return {std::move(cb)};
-	}
-};
-
-enum class archive_prefix { none, of, to, in, from };
-
-template<archive_prefix Prefix, class R>
-struct archive_specifier : virtual cb_owner {
-	using cb_owner::cb_owner;
-	
-    R archive(std::filesystem::path p) requires (Prefix==archive_prefix::none)
-	{ cb.archive = p; return {std::move(cb)}; }
-
-    R to_archive(std::filesystem::path p) requires (Prefix==archive_prefix::to) { 
-		cb.archive = p;
-		cb.operation.modifiers.insert(command_builder::operation_t::create_if_not_exists);
-		return {std::move(cb)};
-	}
-	
-    R to_thin_archive(std::filesystem::path p) requires (Prefix==archive_prefix::to) {
-		cb.archive = p;
-		cb.operation.modifiers.insert(command_builder::operation_t::create_if_not_exists);
-		cb.operation.modifiers.insert(command_builder::operation_t::make_thin_archive);
-		return {std::move(cb)};
-	}
-
-    R of_archive(std::filesystem::path p) requires (Prefix==archive_prefix::of) 
-	{ cb.archive = p; return {std::move(cb)}; }
-	
-    R in_archive(std::filesystem::path p) requires (Prefix==archive_prefix::in)
-	{ cb.archive = p; return {std::move(cb)}; }
-
-    R from_archive(std::filesystem::path p) requires (Prefix==archive_prefix::from)
-	{ cb.archive = p; return {std::move(cb)}; }
-};
-
-using to_archive_members = archive_specifier<archive_prefix::to, members_specifier>;
-
-inline multibase<
-	to_archive_members, 
-	verbose_modifier<to_archive_members>
->
-insert() {
-    return {command_builder{{
-		command_builder::operation_t::replace,
-		{command_builder::operation_t::create_if_not_exists}
-	}}};
-}
-
-inline archive_specifier<archive_prefix::of, cb_owner>
-contents() { return {command_builder{{command_builder::operation_t::display_table}}}; }
-
-inline archive_specifier<archive_prefix::from, members_specifier>
-del() { return {command_builder{{command_builder::operation_t::del}}}; }
-
-inline archive_specifier<archive_prefix::none, cb_owner>
-index() { return {command_builder{{command_builder::operation_t::index}}}; }
 
 }
