@@ -182,6 +182,31 @@ public:
 
     auto& verbose(bool val) {verb = val; return *this;}
 
+    //
+
+    template <ranges::range I>
+    struct compilation_to {
+        const command_builder& cc;
+        const I& inputs;
+
+        cmd::command to(path out) {
+            return cc.compilation(inputs, def, out);
+        }
+
+        cmd::command to_object(path out) {
+            return cc.compilation(inputs, object_file, out);
+        }
+    };
+
+    auto compilation_of(const ranges::range auto& inputs) {
+        return compilation_to{*this, inputs};
+    }
+
+    template <class T>
+    auto compilation_of(const initializer_list<T>& inputs) {
+        return compilation_to{*this, inputs};
+    }
+
     cmd::command compilation(const initializer_list<path>& inputs, const output_type_t& ot, const path& out) const {
         return {name, args_to_string_vec(inputs, ot, out)};
     }

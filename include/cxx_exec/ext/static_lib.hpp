@@ -1,7 +1,6 @@
 #include <filesystem>
 #include <vector>
 #include <string>
-#include "../build/build.hpp"
 #include "../build/configuration.hpp"
 #include "ar.hpp"
 #include "clap/gnu_clap.hpp"
@@ -57,7 +56,9 @@ void exec(vector<string> args) {
 
     for(auto sp : sources()) {
         environment::execute(
-            cc.compilation({sp}, object_file, objects_dir/sp.filename().replace_extension(".o"))
+            cc
+                .compilation_of({sp})
+                .to_object(objects_dir/sp.filename().replace_extension(".o"))
         );
     }
     info("create thin static lib");

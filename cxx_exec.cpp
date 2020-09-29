@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <stdexcept>
 #include <unistd.h>
-#include "build/build.hpp"
 
 using namespace std;
 using namespace filesystem;
@@ -74,8 +73,10 @@ int main(int argc, char* argv[]) {
         .verbose(verbose)
         .debug(native);
     try {
-        compile({root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}).to(exec).with(cc);
-    } catch(...) {return EXIT_FAILURE;}
+        environment::execute(
+            cc.compilation_of({root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}).to(exec)
+        );
+    } catch(...) { return EXIT_FAILURE; }
 
     auto args_begin = delimiter == args.end() ? args.end() : delimiter + 1;
     auto exec_command = gdb ? cmd::command{"gdb", exec}
