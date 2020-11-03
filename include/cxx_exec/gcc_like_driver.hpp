@@ -95,11 +95,13 @@ protected:
 
     optional<debug_information_type> debug_information_type;
     optional<input_type> input_type;    // -x
-    optional<string> m_std;           // --std='arg'
+    optional<string> m_std;             // --std='arg'
     optional<string> compiler_files;    // -B'prefix'
     optional<path> system_root;         // --sysroot'dir'
     optional<path> working_directory;   // -working-directory='dir'
     optional<bool> verb;                // -v
+    optional<bool> m_pic;
+    optional<bool> m_shared;
 
     vector<path> include_paths;         // -Idir
     vector<path> include_quote_paths;   // -iquote dir
@@ -182,6 +184,10 @@ public:
 
     auto& verbose(bool val) {verb = val; return *this;}
 
+    auto& position_independent_code(bool val) { m_pic = val; return *this;}
+
+    auto& shared(bool val) { m_shared = val; return *this;}
+
     //
 
     template <ranges::range I>
@@ -189,22 +195,22 @@ public:
         const command_builder& cc;
         const I& inputs;
 
-        cmd::command to(path out) {
+        cmd::command to(path out) const {
             return cc.compilation(inputs, def, out);
         }
 
-        cmd::command to_object(path out) {
+        cmd::command to_object(path out) const {
             return cc.compilation(inputs, object_file, out);
         }
     };
 
-    auto compilation_of(const ranges::range auto& inputs) {
+    auto compilation_of(const ranges::range auto& inputs) const {
         return compilation_to{*this, inputs};
     }
 
     template <class T>
-    auto compilation_of(const initializer_list<T>& inputs) {
-        return compilation_to{*this, inputs};
+    auto compilation_of(const initializer_list<T>& inputs) const {
+        return compilation_to<initializer_list<T>>{ *this, inputs };
     }
 
     cmd::command compilation(const initializer_list<path>& inputs, const output_type_t& ot, const path& out) const {

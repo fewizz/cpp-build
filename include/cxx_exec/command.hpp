@@ -17,12 +17,15 @@ class command {
     //std::vector<std::string> args;
 public:
 
-    command(std::string command) 
+    command(std::string_view command) 
     : m_command{command} {}
 
-    template<class T, class...Ts>
-    command(const T& t, const Ts&... ts)
-    : command(t, {ts...}) {}
+    /*template<class T, class...Ts>
+    command(std::string_view t, Ts... ts) {
+        m_command += t;
+        m_command += " ";
+        command(ts...);
+    }*/
 
     template<std::input_iterator It>
     command(const auto& name, const It& beg, const It& end)

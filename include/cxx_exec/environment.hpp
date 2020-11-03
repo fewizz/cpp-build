@@ -39,6 +39,14 @@ static const inline std::string exec_extension =
 #endif
 ;
 
+static const inline std::string dynamic_lib_extension =
+#ifdef _WIN32
+".dll"
+#else
+".so"
+#endif
+;
+
 } environment;
 
 inline void environment::execute(cmd::command c) {
