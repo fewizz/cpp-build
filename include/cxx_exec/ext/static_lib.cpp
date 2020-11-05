@@ -1,8 +1,9 @@
 #include <filesystem>
+#include <stdlib.h>
 #include <vector>
 #include <string>
 #include "../build/configuration.hpp"
-#include "ar.hpp"
+#include "../ar.hpp"
 #include "clap/gnu_clap.hpp"
 #include "../environment.hpp"
 #include "../gcc_like_driver.hpp"
@@ -24,7 +25,7 @@ void info(auto str) {
 void configure(gnu::clap& clap, command_builder& cc);
 function<void(path)> on_pre_build = {};
 
-void exec(vector<string> args) {
+int main(int argc, char* argv []) {
     string config_name;
     bool clean = false;
     
@@ -35,7 +36,7 @@ void exec(vector<string> args) {
     auto cc = environment::cxx_compile_command_builder();
 
     configure(clap, cc);
-    clap.parse(args);
+    clap.parse(argv, argv + argc);
 
     path build_dir = "build";
     if(clean) {
@@ -43,7 +44,7 @@ void exec(vector<string> args) {
         remove_all(build_dir);
     }
 
-    if(config_name.empty()) return;
+    if(config_name.empty()) return EXIT_SUCCESS;
     auto config = configuration::by_name(config_name);
 
     config.apply(cc);
@@ -54,14 +55,19 @@ void exec(vector<string> args) {
 
     if(on_pre_build) on_pre_build(config_dir);
 
-    info("compile");
+    vector<path> objects;
 
-    for(auto sp : sources()) {
+    for(auto source_path : sources()) {
+        info("compile " + source_path.string());
+        path object_path = objects_dir/source_path.filename().replace_extension(".o");
+
         environment::execute(
             cc
-                .compilation_of({sp})
-                .to_object(objects_dir/sp.filename().replace_extension(".o"))
+                .compilation_of(source_path)
+                .to_object(object_path)
         );
+
+        objects.push_back(object_path);
     }
     info("create thin static lib");
 
@@ -69,6 +75,6 @@ void exec(vector<string> args) {
         ar::command_builder{
             config_dir/(string{name()} + ".a"),
             ar::insert{}.verbose().make_thin_archive()
-        }.members(sources())
+        }.members(objects)
     );
 }

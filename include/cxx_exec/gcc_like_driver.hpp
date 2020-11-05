@@ -193,7 +193,7 @@ public:
     template <ranges::range I>
     struct compilation_to {
         const command_builder& cc;
-        const I& inputs;
+        I inputs;
 
         cmd::command to(path out) const {
             return cc.compilation(inputs, def, out);
@@ -204,13 +204,17 @@ public:
         }
     };
 
+    auto compilation_of(const path& src) const {
+        return compilation_to<vector<path>>{*this, {src} };
+    }
+
     auto compilation_of(const ranges::range auto& inputs) const {
         return compilation_to{*this, inputs};
     }
 
     template <class T>
     auto compilation_of(const initializer_list<T>& inputs) const {
-        return compilation_to<initializer_list<T>>{ *this, inputs };
+        return compilation_to<vector<T>>{ *this, inputs };
     }
 
     cmd::command compilation(const initializer_list<path>& inputs, const output_type_t& ot, const path& out) const {

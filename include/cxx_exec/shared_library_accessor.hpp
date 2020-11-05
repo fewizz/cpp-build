@@ -5,23 +5,23 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
-#include <windows.h>
-#include <stdio.h>
 #include <string>
 #include <filesystem>
-#include <iostream>
 
-struct shared_library {
+#include <windows.h>
+#include <stdio.h>
+
+class shared_library_accessor {
     using path = std::filesystem::path;
 
     HINSTANCE instance;
 
-    shared_library(path path) {
+public:
+
+    shared_library_accessor(path path) {
         instance = LoadLibrary(path.string().c_str());
 
         if(!instance) throw std::runtime_error{"couldn't load library '"+path.string()+"'"};
-        
-        std::cout << "loaded" << "\n";
     }
 
     template<class Function, class... Args>
@@ -33,7 +33,7 @@ struct shared_library {
         return ((Function*)addr)(args...);
     }
 
-    ~shared_library() noexcept(false) {
+    ~shared_library_accessor() noexcept(false) {
         if(!FreeLibrary(std::exchange(instance, nullptr)))
             throw std::runtime_error{"couldn't free library"};
     }

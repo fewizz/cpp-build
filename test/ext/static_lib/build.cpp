@@ -1,4 +1,4 @@
-#include "ext/static_lib.hpp"
+#include "cxx_exec/ext/static_lib"
 
 const char* name() { return "code"; }
 vector<path> sources() { return { "code.cpp" }; }

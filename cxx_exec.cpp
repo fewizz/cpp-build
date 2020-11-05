@@ -7,34 +7,13 @@
 #include <stdexcept>
 #include <unistd.h>
 #include <iostream>
-#include "shared_library.hpp"
+#include "shared_library_accessor.hpp"
 
 using namespace std;
 using namespace filesystem;
 using namespace gcc_like_driver;
 
-#ifdef _WIN32
-#include <libloaderapi.h>
-#include <errhandlingapi.h>
-#include <winerror.h>
-static inline string current_exec_path() {
-    string path_s;
-
-	int w;
-	do {
-		path_s.resize(path_s.size()+0x100);
-    	w = GetModuleFileNameA(nullptr, path_s.data(), path_s.size());
-	} while(GetLastError() == ERROR_INSUFFICIENT_BUFFER);
-
-    path_s.resize(w);
-	return path_s;
-}
-#endif
-
 int main(int argc, char* argv[]) {
-    path cxx_exec = current_exec_path();
-
-    // program parameters
     argv++; argc--;
 
     vector<string_view> args{argv, argv + argc};
@@ -42,75 +21,54 @@ int main(int argc, char* argv[]) {
     if (args.empty())
         throw runtime_error("c++ file not provided");
 
-    path root = cxx_exec.parent_path().parent_path();
     path cxx = absolute(args.front());
     if(not exists(cxx)) throw runtime_error("c++ file '"+cxx.string()+"' doesn't exists");
 
     bool verbose;
-    string std, debugger;//, output_type;
-    path output;
+    string std;
+    path output_path;
     auto delimiter = find(args.begin() + 1, args.end(), "--");
 
     clap::braced_clap{}
         .option("verbose", clap::value_parser<char>(verbose))
-        .option(
-            "debugger",  clap::value_parser<char>(debugger)
-        )
         .braced(
             "output",
             {
-                { "path", clap::value_parser<char>(output) },
+                { "path", clap::value_parser<char>(output_path) },
             }
         )
         .option("standard", clap::value_parser<char>(std))
         .parse(args.begin() + 1, delimiter);
 
-    bool output_is_temp = output.empty();
+    bool output_is_temp = output_path.empty();
 
     if (output_is_temp)
-        output = temp_directory_path() / to_string(getpid());
+        output_path = temp_directory_path() / to_string(getpid());
 
-    output = absolute(output);
-    if(output.extension().empty())
-        output.replace_extension(environment::dynamic_lib_extension);
+    output_path = absolute(output_path);
+    if(output_path.extension().empty())
+        output_path.replace_extension(environment::dynamic_lib_extension);
 
-    if(verbose) {
-        cout << "cxx-exec executable path: "+cxx_exec.string()+"\n";
-        cout << "root: "+root.string()+"\n";
-        cout << "exec path: "+output.string()+"\n";
-        cout.flush();
-    }
+    if(verbose)
+        cout << "output path: "+output_path.string()+"\n" << flush;
 
     auto cc = environment::cxx_compile_command_builder()
         .std(std.empty() ? "c++20" : std)
-        .include(root/"include/cxx_exec")
         .verbose(verbose)
         .debug(native)
         .shared(true)
         .position_independent_code(true);
     try {
-        environment::execute(
-            cc.compilation_of({root/"share/cxx_exec/cxx_exec_entry.cpp", cxx}).to(output)
-        );
+        environment::execute(cc.compilation_of(cxx).to(output_path));
     } catch(...) { return EXIT_FAILURE; }
 
-    auto args_begin = delimiter == args.end() ? args.end() : delimiter + 1;
-    auto exec_command =
-        not debugger.empty()
-            ? cmd::command{ debugger, std::vector<string>{ output.generic_string() } }
-            : cmd::command{ output, args_begin, args.end() };
-
     try {
-        if(verbose)
-            cout << "executing: "+exec_command.string()+"\n";
-        shared_library sl{ output };
-
+        shared_library_accessor lib{ output_path };
         int off = std::distance(args.begin(), delimiter);
-        sl.run<int(int, char*[])>("main", argc - off, argv + off);
+        lib.run<int(int, char*[])>("main", argc - off, argv + off);
+    } catch(...) {} //We're don't care
 
-    } catch(...) {} //We're not interested in this.
-
-    if (output_is_temp) remove(output);
+    if (output_is_temp) remove(output_path);
 
     return EXIT_SUCCESS;
 }
