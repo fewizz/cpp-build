@@ -12,14 +12,16 @@ using namespace filesystem;
 using namespace gnu;
 using namespace gcc_like_driver;
 
-string name();
+//string name();
+extern "C" const char* name();// { return name().c_str(); }
+
 vector<path> sources();
 
 void info(auto str) {
-    cout << "["+name()+"] " << str << "\n" << flush;
+    cout << "["+string{name()}+"] " << str << "\n" << flush;
 }
 
-void configure(clap& clap, command_builder& cc);
+void configure(gnu::clap& clap, command_builder& cc);
 function<void(path)> on_pre_build = {};
 
 void exec(vector<string> args) {
@@ -65,7 +67,7 @@ void exec(vector<string> args) {
 
     environment::execute(
         ar::command_builder{
-            config_dir/(name() + ".a"),
+            config_dir/(string{name()} + ".a"),
             ar::insert{}.verbose().make_thin_archive()
         }.members(sources())
     );

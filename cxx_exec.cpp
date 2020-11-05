@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <unistd.h>
 #include <iostream>
+#include "shared_library.hpp"
 
 using namespace std;
 using namespace filesystem;
@@ -34,7 +35,9 @@ int main(int argc, char* argv[]) {
     path cxx_exec = current_exec_path();
 
     // program parameters
-    vector<string_view> args{argv + 1, argv + argc};
+    argv++; argc--;
+
+    vector<string_view> args{argv, argv + argc};
 
     if (args.empty())
         throw runtime_error("c++ file not provided");
@@ -100,7 +103,11 @@ int main(int argc, char* argv[]) {
     try {
         if(verbose)
             cout << "executing: "+exec_command.string()+"\n";
-        environment::execute(exec_command);
+        shared_library sl{ output };
+
+        int off = std::distance(args.begin(), delimiter);
+        sl.run<int(int, char*[])>("main", argc - off, argv + off);
+
     } catch(...) {} //We're not interested in this.
 
     if (output_is_temp) remove(output);

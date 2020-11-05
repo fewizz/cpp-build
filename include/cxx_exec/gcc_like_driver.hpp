@@ -250,6 +250,10 @@ protected:
             args.emplace_back("-std="+*m_std);
         if(output)
             args.emplace_back("--output="+output->string());
+        if(m_shared and *m_shared)
+            args.emplace_back("-shared");
+        if(m_pic and *m_pic)
+            args.emplace_back("-fpic");
         
         for(const auto& def : m_definitions)
             args.emplace_back(def.string());
