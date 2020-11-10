@@ -63,10 +63,10 @@ int main(int argc, char* argv[]) {
     } catch(...) { return EXIT_FAILURE; }
 
     try {
-        shared_library_accessor lib{ output_path };
+        auto lib = environment::load_shared_library(output_path);
         int off = std::distance(args.begin(), delimiter);
         lib.run<int(int, char*[])>("main", argc - off, argv + off);
-    } catch(...) {} //We're don't care
+    } catch(...) {}
 
     if (output_is_temp) remove(output_path);
 

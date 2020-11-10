@@ -5,10 +5,11 @@
 #include "gcc_like_driver.hpp"
 #include <cstdlib>
 #include "unix/ipstream.hpp"
+#include "shared_library_accessor.hpp"
 
-struct environment : cmd::processor {
+namespace environment {
 
-void process(cmd::command command) override {
+inline void process(cmd::command command) {
     if(int code = std::system(command.string().c_str()))
     throw std::runtime_error {
         "'"+command.string()+"' command's exit code is '"
@@ -16,22 +17,30 @@ void process(cmd::command command) override {
     };
 }
 
-static inline std::string cxx_compiler() {
-    return variable("CXX", "g++");
-}
-
-static inline gcc_like_driver::command_builder cxx_compile_command_builder() {
-    return {cxx_compiler()};
-}
-
-static inline void execute(cmd::command);
-
-static inline std::string variable(std::string name, std::string def={}) {
+inline std::string variable(std::string name, std::string def={}) {
     auto val = std::getenv(name.c_str());
     return val not_eq nullptr ? std::string{val} : def;
 }
 
-static const inline std::string exec_extension =
+inline std::string cxx_compiler() {
+    return variable("CXX", "g++");
+}
+
+inline gcc_like_driver::command_builder cxx_compile_command_builder() {
+    return {cxx_compiler()};
+}
+
+inline void execute(cmd::command c) {
+    process(c);
+}
+
+inline shared_library_accessor load_shared_library(const std::filesystem::path& path) {
+    auto instance = LoadLibrary(path.string().c_str());
+    if(!instance) throw std::runtime_error{"load library '"+path.string()+"'"};
+    return {instance};
+}
+
+const inline std::string exec_extension =
 #ifdef _WIN32
 ".exe"
 #else
@@ -39,7 +48,7 @@ static const inline std::string exec_extension =
 #endif
 ;
 
-static const inline std::string dynamic_lib_extension =
+const inline std::string dynamic_lib_extension =
 #ifdef _WIN32
 ".dll"
 #else
@@ -47,8 +56,4 @@ static const inline std::string dynamic_lib_extension =
 #endif
 ;
 
-} environment;
-
-inline void environment::execute(cmd::command c) {
-    ::environment.process(c);
 }

@@ -13,17 +13,26 @@ using namespace filesystem;
 using namespace gnu;
 using namespace gcc_like_driver;
 
-//string name();
-extern "C" const char* name();// { return name().c_str(); }
+extern "C" const char* name();
 
 vector<path> sources();
 
-void info(auto str) {
+inline void info(auto str) {
     cout << "["+string{name()}+"] " << str << "\n" << flush;
 }
 
-void configure(gnu::clap& clap, command_builder& cc);
-function<void(path)> on_pre_build = {};
+void build(const path& path, command_builder& cc);
+
+void _build(const void* output_dir, void* cc) {
+    build(*((const path*)output_dir), *((command_builder*)cc));
+}
+
+//void configure(gnu::clap& clap, command_builder& cc);
+function<void()> on_pre_build = {};
+
+//void configure_(void* clap, void* cc) {
+//    configure(*((gnu::clap*)clap), *((command_builder*)cc));
+//}
 
 int main(int argc, char* argv []) {
     string config_name;
@@ -35,7 +44,7 @@ int main(int argc, char* argv []) {
 
     auto cc = environment::cxx_compile_command_builder();
 
-    configure(clap, cc);
+    //configure(clap, cc);
     clap.parse(argv, argv + argc);
 
     path build_dir = "build";
@@ -49,11 +58,13 @@ int main(int argc, char* argv []) {
 
     config.apply(cc);
 
-    path config_dir = build_dir/config_name;
-    auto objects_dir = config_dir/"objects";
-    create_directories(objects_dir);
+    build(build_dir/config_name, cc);
+}
 
-    if(on_pre_build) on_pre_build(config_dir);
+void build(const path& output_dir, command_builder& cc) {
+    if(on_pre_build) on_pre_build();
+    auto objects_dir = output_dir/"objects";
+    create_directories(objects_dir);
 
     vector<path> objects;
 
@@ -62,18 +73,17 @@ int main(int argc, char* argv []) {
         path object_path = objects_dir/source_path.filename().replace_extension(".o");
 
         environment::execute(
-            cc
-                .compilation_of(source_path)
-                .to_object(object_path)
+            cc.compilation_of(source_path).to_object(object_path)
         );
 
         objects.push_back(object_path);
     }
+
     info("create thin static lib");
 
     environment::execute(
         ar::command_builder{
-            config_dir/(string{name()} + ".a"),
+            output_dir/(string{name()} + ".a"),
             ar::insert{}.verbose().make_thin_archive()
         }.members(objects)
     );
