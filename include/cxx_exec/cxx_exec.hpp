@@ -25,7 +25,7 @@ struct command_builder {
     operator cmd::command () {
         std::vector<std::string> args;
         args.push_back(source.string());
-        if(m_output) args.push_back("output{path="+m_output->string()+"}");
+        if(m_output) args.push_back("--output="+m_output->string());
         return {"cxx-exec", args};
     }
 

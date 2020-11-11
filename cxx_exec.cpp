@@ -1,13 +1,13 @@
 #include "gcc_like_driver.hpp"
 #include "environment.hpp"
-#include "clap/braced_clap.hpp"
+#include "clap/gnu_clap.hpp"
 #include <clap/parser.hpp>
 #include <filesystem>
 #include <algorithm>
 #include <stdexcept>
 #include <unistd.h>
 #include <iostream>
-#include "shared_library_accessor.hpp"
+#include "shared_lib_accessor.hpp"
 
 using namespace std;
 using namespace filesystem;
@@ -29,15 +29,10 @@ int main(int argc, char* argv[]) {
     path output_path;
     auto delimiter = find(args.begin() + 1, args.end(), "--");
 
-    clap::braced_clap{}
-        .option("verbose", clap::value_parser<char>(verbose))
-        .braced(
-            "output",
-            {
-                { "path", clap::value_parser<char>(output_path) },
-            }
-        )
-        .option("standard", clap::value_parser<char>(std))
+    gnu::clap{}
+        .flag('v', "verbose", verbose)
+        .value('o', "output", output_path)
+        .value('s', "standard", std)
         .parse(args.begin() + 1, delimiter);
 
     bool output_is_temp = output_path.empty();

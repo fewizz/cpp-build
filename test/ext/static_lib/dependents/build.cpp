@@ -4,20 +4,22 @@
 #include "cxx_exec/cxx_exec.hpp"
 #include <stdexcept>
 
-const char* name() { return "main"; }
+string_view name() { return "main"; }
 vector<path> sources() { return { "main.cpp" }; }
+
+using namespace environment;
 
 void configure() {
     before_build = ([&](gcc_like_driver::command_builder& cc) {
 
-        environment::change_dir("dependency", [&](){
-            environment::execute(
+        change_dir("dependency", [&]() {
+            execute(
                 cxx_exec::command_builder("build.cpp")
                 .output("dep")
             );
 
             static_lib_accessor {
-                environment::load_shared_library("dep.dll")
+                load_shared_library("dep.dll")
             }.build("build", cc);
         });
 

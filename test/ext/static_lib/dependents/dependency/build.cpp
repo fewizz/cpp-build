@@ -1,6 +1,7 @@
 #include "cxx_exec/ext/static_lib"
+#include <string_view>
 
-const char* name() { return "dependency"; }
+string_view name() { return "dependency"; }
 vector<path> sources() { return { "hello.cpp" }; }
 
 void configure() {

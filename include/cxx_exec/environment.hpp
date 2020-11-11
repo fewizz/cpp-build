@@ -5,29 +5,9 @@
 #include "gcc_like_driver.hpp"
 #include <cstdlib>
 #include "unix/ipstream.hpp"
-#include "shared_library_accessor.hpp"
+#include "shared_lib_accessor.hpp"
 
 namespace environment {
-
-#ifdef _WIN32
-#include <libloaderapi.h>
-#include <errhandlingapi.h>
-#include <winerror.h>
-namespace windows {
-    inline std::filesystem::path module_file_name(void* module) {
-        std::string path_s;
-
-	    int w;
-	    do {
-		    path_s.resize(path_s.size()+0x100);
-    	    w = GetModuleFileNameA(nullptr, path_s.data(), path_s.size());
-	    } while(GetLastError() == ERROR_INSUFFICIENT_BUFFER);
-
-        path_s.resize(w);
-	    return path_s;
-    }
-}
-#endif
 
 inline void process(cmd::command command) {
     if(int code = std::system(command.string().c_str()))
@@ -64,24 +44,23 @@ inline void change_dir(std::filesystem::path dir) {
 }
 
 inline void change_dir(std::filesystem::path dir, std::function<void()> fun) {
-    char prev_[256];
-    auto current = getcwd(prev_, 256);
+    auto prev = getcwd(nullptr, 0);
 
-    change_dir(dir);
-
-    fun();
-
-    change_dir({prev_});
+    try {
+        change_dir(dir);
+        fun();
+        change_dir(prev);
+    }
+    catch(...) {
+        free(prev);
+        throw;
+    }
 }
 
-inline shared_library_accessor load_shared_library(const std::filesystem::path& path) {
+inline shared_lib_accessor load_shared_library(const std::filesystem::path& path) {
     auto instance = LoadLibrary(path.string().c_str());
     if(!instance) throw std::runtime_error{"load library '"+path.string()+"'"};
     return {instance};
-}
-
-inline std::filesystem::path shared_library_location(const shared_library_accessor& lib) {
-    return windows::module_file_name(lib.instance);
 }
 
 const inline std::string exec_extension =

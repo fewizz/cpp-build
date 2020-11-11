@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <stdlib.h>
+#include <string_view>
 #include <vector>
 #include <string>
 #include "../build/configuration.hpp"
@@ -10,11 +11,11 @@
 
 using namespace std;
 using namespace filesystem;
-using namespace gnu;
 using namespace gcc_like_driver;
 
-extern "C" const char* name();
+extern "C" const char* __name();
 
+string_view name();
 vector<path> sources();
 
 inline void info(auto str) {
@@ -23,7 +24,7 @@ inline void info(auto str) {
 
 void build(const path& output_dir, command_builder& cc);
 
-extern "C" void _build(const void* output_dir, void* cc) {
+extern "C" void __build(const void* output_dir, void* cc) {
     build(*((const path*)output_dir), *((command_builder*)cc));
 }
 
