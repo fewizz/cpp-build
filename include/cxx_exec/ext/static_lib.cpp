@@ -21,20 +21,20 @@ inline void info(auto str) {
     cout << "["+string{name()}+"] " << str << "\n" << flush;
 }
 
-void build(const path& path, command_builder& cc);
+void build(const path& output_dir, command_builder& cc);
 
-void _build(const void* output_dir, void* cc) {
+extern "C" void _build(const void* output_dir, void* cc) {
     build(*((const path*)output_dir), *((command_builder*)cc));
 }
 
-//void configure(gnu::clap& clap, command_builder& cc);
-function<void()> on_pre_build = {};
+extern "C" void configure();
 
-//void configure_(void* clap, void* cc) {
-//    configure(*((gnu::clap*)clap), *((command_builder*)cc));
-//}
+function<void(command_builder&)> before_build = {};
+function<void(gnu::clap&)> before_clap_parse = {};
 
 int main(int argc, char* argv []) {
+    configure();
+
     string config_name;
     bool clean = false;
     
@@ -43,8 +43,7 @@ int main(int argc, char* argv []) {
     clap.flag("clean", clean);
 
     auto cc = environment::cxx_compile_command_builder();
-
-    //configure(clap, cc);
+    if(before_clap_parse) before_clap_parse(clap);
     clap.parse(argv, argv + argc);
 
     path build_dir = "build";
@@ -62,7 +61,7 @@ int main(int argc, char* argv []) {
 }
 
 void build(const path& output_dir, command_builder& cc) {
-    if(on_pre_build) on_pre_build();
+    if(before_build) before_build(cc);
     auto objects_dir = output_dir/"objects";
     create_directories(objects_dir);
 
