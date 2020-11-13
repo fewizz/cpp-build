@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include "command_processor.hpp"
 #include "gcc_like_driver.hpp"
 #include <cstdlib>
 #include "unix/ipstream.hpp"

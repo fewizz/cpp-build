@@ -1,13 +1,15 @@
 #include <filesystem>
+#include <stdexcept>
 #include <stdlib.h>
 #include <string_view>
 #include <vector>
 #include <string>
-#include "../build/configuration.hpp"
+#include "../configuration.hpp"
 #include "../ar.hpp"
 #include "clap/gnu_clap.hpp"
 #include "../environment.hpp"
 #include "../gcc_like_driver.hpp"
+#include "../update_need_checker.hpp"
 
 using namespace std;
 using namespace filesystem;
@@ -17,6 +19,15 @@ extern "C" const char* __name();
 
 string_view name();
 vector<path> sources();
+
+std::function<update_need_checker(
+    const gcc_like_driver::command_builder&,
+    const path&,
+    const path&
+)> update_need_checker_provider =
+    [](const gcc_like_driver::command_builder& cc, const path& src, const path& out) {
+        return if_outdated_by_date_make(cc, src, out);
+    };
 
 inline void info(auto str) {
     cout << "["+string{name()}+"] " << str << "\n" << flush;
@@ -67,16 +78,27 @@ void build(const path& output_dir, command_builder& cc) {
     create_directories(objects_dir);
 
     vector<path> objects;
+    vector<path> updated_objects;
 
     for(auto source_path : sources()) {
-        info("compile " + source_path.string());
         path object_path = objects_dir/source_path.filename().replace_extension(".o");
 
-        environment::execute(
-            cc.compilation_of(source_path).to_object(object_path)
-        );
+        if(update_need_checker_provider(cc, source_path, object_path) () ) {
+            info("compile " + source_path.string());
+
+            environment::execute(
+                cc.compilation_of(source_path).to_object(object_path)
+            );
+
+            updated_objects.push_back(object_path);
+        }
 
         objects.push_back(object_path);
+    }
+
+    if(updated_objects.empty()) {
+        info("up-to date");
+        return;
     }
 
     info("create thin static lib");

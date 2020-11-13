@@ -16,6 +16,7 @@ void configure() {
             execute(
                 cxx_exec::command_builder("build.cpp")
                 .output("dep")
+                .compile_only(true)
             );
 
             static_lib_accessor {

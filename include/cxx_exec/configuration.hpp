@@ -6,7 +6,7 @@
 #include <vector>
 #include <stdexcept>
 #include <map>
-#include "../gcc_like_driver.hpp"
+#include "gcc_like_driver.hpp"
 
 struct configuration {
     const std::function<void(gcc_like_driver::command_builder&)> applier;

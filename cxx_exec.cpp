@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <iostream>
 #include "shared_lib_accessor.hpp"
+#include "update_need_checker.hpp"
 
 using namespace std;
 using namespace filesystem;
@@ -24,13 +25,14 @@ int main(int argc, char* argv[]) {
     path cxx = absolute(args.front());
     if(not exists(cxx)) throw runtime_error("c++ file '"+cxx.string()+"' doesn't exists");
 
-    bool verbose;
+    bool verbose = false, compile_only = false;
     string std;
     path output_path;
     auto delimiter = find(args.begin() + 1, args.end(), "--");
 
     gnu::clap{}
         .flag('v', "verbose", verbose)
+        .flag('c', "compile-only", compile_only)
         .value('o', "output", output_path)
         .value('s', "standard", std)
         .parse(args.begin() + 1, delimiter);
@@ -49,19 +51,26 @@ int main(int argc, char* argv[]) {
 
     auto cc = environment::cxx_compile_command_builder()
         .std(std.empty() ? "c++20" : std)
-        .verbose(verbose)
         .debug(native)
         .shared(true)
         .position_independent_code(true);
     try {
-        environment::execute(cc.compilation_of(cxx).to(output_path));
+        if(if_outdated_by_date_make(cc, cxx, output_path) ()) {
+            if(verbose) {
+                cout << "cxx outdated, recompiling\n" << flush;
+                cc.verbose(verbose);
+            }
+            environment::execute(cc.compilation_of(cxx).to(output_path));
+        }
     } catch(...) { return EXIT_FAILURE; }
 
-    try {
-        auto lib = environment::load_shared_library(output_path);
-        int off = std::distance(args.begin(), delimiter);
-        lib.run<int(int, char*[])>("main", argc - off, argv + off);
-    } catch(...) {}
+    if(not compile_only) {
+        try {
+            auto lib = environment::load_shared_library(output_path);
+            int off = std::distance(args.begin(), delimiter);
+            lib.run<int(int, char*[])>("main", argc - off, argv + off);
+        } catch(...) {}
+    }
 
     if (output_is_temp) remove(output_path);
 
