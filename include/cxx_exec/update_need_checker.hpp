@@ -26,17 +26,20 @@ inline update_need_checker if_outdated_by_date_make(
     const std::filesystem::path& src,
     const std::filesystem::path& out
 ) {
+    using namespace std;
+    using namespace filesystem;
+    
     return [&]() {
-        if(not std::filesystem::exists(out)) return true;
+        if(not exists(out)) return true;
 
-        std::vector<std::filesystem::path> deps;
+        vector<path> deps;
         
         {
             unix::ipstream stream{cc.make_rule_creation({src})};
-            stream.ignore(std::numeric_limits<std::streamsize>::max(), ':');
+            stream.ignore(numeric_limits<streamsize>::max(), ':');
 
             while(stream) {
-                std::string str;
+                string str;
                 stream >> str;
                 if(str.empty() or str.size() == 1 and str[0] == '\\')
                     continue;
@@ -44,7 +47,7 @@ inline update_need_checker if_outdated_by_date_make(
             }
         }
         for(auto dep : deps)
-            if(std::filesystem::last_write_time(dep) > std::filesystem::last_write_time(out))
+            if(last_write_time(dep) > last_write_time(out))
                 return true;
         return false;
     };

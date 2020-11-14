@@ -18,10 +18,10 @@ using namespace gcc_like_driver;
 
 #define on_startup __attribute__((constructor)) void
 
-extern "C" const char* __name();
-
 string_view name();
 vector<path> sources();
+
+extern "C" const char* __name() {return name().data(); }
 
 static path output_dir = "build";
 static function<path()> object_dir_provider = [](){ return output_dir/"object"; };
@@ -43,40 +43,15 @@ inline void info(auto str) {
 
 void build();
 
-extern "C" void __build(void* cc, const void* output_dir) {
+extern "C" void __build() {
     build();
 }
-
-//extern "C" void configure();
 
 function<void(command_builder&)> before_build = {};
 function<void(gnu::clap&)> before_clap_parse = {};
 
 int main(int argc, char* argv []) {
-    //configure();
-
     if(args_parser) args_parser(vector<string_view> {argv, argv + argc});
-
-    //string config_name;
-    //bool clean = false;
-    
-    //gnu::clap clap;
-    //clap.value('c', "configuration", config_name);
-    //clap.flag("clean", clean);
-
-    //auto cc = environment::cxx_compile_command_builder();
-    //if(before_clap_parse) before_clap_parse(clap);
-    //clap.parse(argv, argv + argc);
-
-    //if(clean) {
-    //    info("clean");
-    //    remove_all(output_dir);
-    //}
-
-    //if(config_name.empty()) return EXIT_SUCCESS;
-    //auto config = configuration::by_name(config_name);
-
-    //config.apply(cc);
 
     build();
 }
