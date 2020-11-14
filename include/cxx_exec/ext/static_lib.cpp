@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <functional>
 #include <stdexcept>
 #include <stdlib.h>
 #include <string_view>
@@ -15,10 +16,17 @@ using namespace std;
 using namespace filesystem;
 using namespace gcc_like_driver;
 
+#define on_startup __attribute__((constructor)) void
+
 extern "C" const char* __name();
 
 string_view name();
 vector<path> sources();
+
+static path output_dir = "build";
+static function<path()> object_dir_provider = [](){ return output_dir/"object"; };
+static gcc_like_driver::command_builder cc = environment::cxx_compile_command_builder();
+static function<void(vector<string_view>)> args_parser;
 
 std::function<update_need_checker(
     const gcc_like_driver::command_builder&,
@@ -33,55 +41,55 @@ inline void info(auto str) {
     cout << "["+string{name()}+"] " << str << "\n" << flush;
 }
 
-void build(const path& output_dir, command_builder& cc);
+void build();
 
-extern "C" void __build(const void* output_dir, void* cc) {
-    build(*((const path*)output_dir), *((command_builder*)cc));
+extern "C" void __build(void* cc, const void* output_dir) {
+    build();
 }
 
-extern "C" void configure();
+//extern "C" void configure();
 
 function<void(command_builder&)> before_build = {};
 function<void(gnu::clap&)> before_clap_parse = {};
 
 int main(int argc, char* argv []) {
-    configure();
+    //configure();
 
-    string config_name;
-    bool clean = false;
+    if(args_parser) args_parser(vector<string_view> {argv, argv + argc});
+
+    //string config_name;
+    //bool clean = false;
     
-    gnu::clap clap;
-    clap.value('c', "configuration", config_name);
-    clap.flag("clean", clean);
+    //gnu::clap clap;
+    //clap.value('c', "configuration", config_name);
+    //clap.flag("clean", clean);
 
-    auto cc = environment::cxx_compile_command_builder();
-    if(before_clap_parse) before_clap_parse(clap);
-    clap.parse(argv, argv + argc);
+    //auto cc = environment::cxx_compile_command_builder();
+    //if(before_clap_parse) before_clap_parse(clap);
+    //clap.parse(argv, argv + argc);
 
-    path build_dir = "build";
-    if(clean) {
-        info("clean");
-        remove_all(build_dir);
-    }
+    //if(clean) {
+    //    info("clean");
+    //    remove_all(output_dir);
+    //}
 
-    if(config_name.empty()) return EXIT_SUCCESS;
-    auto config = configuration::by_name(config_name);
+    //if(config_name.empty()) return EXIT_SUCCESS;
+    //auto config = configuration::by_name(config_name);
 
-    config.apply(cc);
+    //config.apply(cc);
 
-    build(build_dir/config_name, cc);
+    build();
 }
 
-void build(const path& output_dir, command_builder& cc) {
+void build() {
     if(before_build) before_build(cc);
-    auto objects_dir = output_dir/"objects";
-    create_directories(objects_dir);
 
     vector<path> objects;
     vector<path> updated_objects;
 
     for(auto source_path : sources()) {
-        path object_path = objects_dir/source_path.filename().replace_extension(".o");
+        path object_path = object_dir_provider()/source_path.filename().replace_extension(".o");
+        create_directories(object_dir_provider());
 
         if(update_need_checker_provider(cc, source_path, object_path) () ) {
             info("compile " + source_path.string());

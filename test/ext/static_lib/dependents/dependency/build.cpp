@@ -3,7 +3,3 @@
 
 string_view name() { return "dependency"; }
 vector<path> sources() { return { "hello.cpp" }; }
-
-void configure() {
-    
-}

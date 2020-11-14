@@ -14,10 +14,7 @@ struct static_lib_accessor : shared_lib_accessor {
         return run<const char*()>("__name");
     }
 
-    void build(
-        const std::filesystem::path& path,
-        gcc_like_driver::command_builder& cc
-    ) {
-        run<void(const void*, void*)>("__build", &path, &cc);
+    void build() {
+        run<void()>("__build");
     }
 };
