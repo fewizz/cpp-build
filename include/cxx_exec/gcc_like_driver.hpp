@@ -190,17 +190,21 @@ public:
 
     //
 
-    template <ranges::range I>
+    template <class I>
     struct compilation_to {
         const command_builder& cc;
-        I inputs;
+        std::remove_cvref_t<I> inputs;
+
+        cmd::command to(output_type ot, path out) const {
+            return cc.compilation(inputs, ot, out);
+        }
 
         cmd::command to(path out) const {
-            return cc.compilation(inputs, def, out);
+            return to(def, out);
         }
 
         cmd::command to_object(path out) const {
-            return cc.compilation(inputs, object_file, out);
+            return to(object_file, out);
         }
     };
 
@@ -209,7 +213,7 @@ public:
     }
 
     auto compilation_of(const ranges::range auto& inputs) const {
-        return compilation_to{*this, inputs};
+        return compilation_to<decltype(inputs)>{*this, inputs};
     }
 
     template <class T>

@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 
     output_path = absolute(output_path);
     if(output_path.extension().empty())
-        output_path.replace_extension(environment::dynamic_lib_extension);
+        output_path.replace_extension(environment::shared_lib_extension);
 
     if(verbose)
         cout << "output path: "+output_path.string()+"\n" << flush;

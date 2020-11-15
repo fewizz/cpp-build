@@ -1,5 +1,4 @@
-#include "cxx_exec/ext/static_lib"
-#include "cxx_exec/environment.hpp"
+#include "cxx_exec/ext/executable"
 #include "cxx_exec/ext/static_lib_accessor.hpp"
 #include "cxx_exec/cxx_exec.hpp"
 
@@ -9,7 +8,7 @@ vector<path> sources() { return { "main.cpp" }; }
 using namespace environment;
 
 on_startup configure() {
-    before_build = ([&](gcc_like_driver::command_builder& cc) {
+    before_build = ([&]() {
 
         change_dir("dependency", [&]() {
             
@@ -22,5 +21,6 @@ on_startup configure() {
             }.build();
         });
 
+        input_files.push_back("dependency/build/dependency.a");
     });
 }

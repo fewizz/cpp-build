@@ -70,7 +70,7 @@ const inline std::string exec_extension =
 #endif
 ;
 
-const inline std::string dynamic_lib_extension =
+const inline std::string shared_lib_extension =
 #ifdef _WIN32
 ".dll"
 #else

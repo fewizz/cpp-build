@@ -15,6 +15,6 @@ struct static_lib_accessor : shared_lib_accessor {
     }
 
     void build() {
-        run<void()>("__build");
+        run<void()>("build");
     }
 };
