@@ -15,6 +15,8 @@ class command {
     std::string m_command;
 
 public:
+    command(std::string command) 
+    : m_command{command} {}
 
     command(std::string_view command) 
     : m_command{command} {}

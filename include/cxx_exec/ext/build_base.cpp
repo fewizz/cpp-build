@@ -5,6 +5,8 @@
 #include "../update_need_checker.hpp"
 #include "../ar.hpp"
 
+#include "log"
+
 using namespace std;
 using namespace filesystem;
 using namespace gcc_like_driver;
@@ -12,6 +14,11 @@ using namespace gcc_like_driver;
 #define on_startup __attribute__((constructor)) void
 
 string_view name();
+extern "C" void build();
+
+on_startup __build_base() {
+    log_formatter = [](const string& message) { return "["+string{name()}+"] " + message; };
+}
 
 using sources_t =
     vector<variant<
@@ -21,11 +28,7 @@ using sources_t =
 
 vector<path> sources();
 
-extern "C" const char* __name() {return name().data(); }
-
-inline void info(auto str) {
-    cout << "["+string{name()}+"] " << str << "\n" << flush;
-}
+extern "C" const char* __name() { return name().data(); }
 
 static path output_dir = "build";
 static function<path()> object_dir_provider = [](){ return output_dir/"object"; };
@@ -43,8 +46,6 @@ std::function<update_need_checker(
     [](const gcc_like_driver::command_builder& cc, const path& src, const path& out) {
         return if_outdated_by_date_make(cc, src, out);
     };
-
-extern "C" void build();
 
 function<void()> before_build;
 output_type* __output_type;

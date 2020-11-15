@@ -1,9 +1,6 @@
-#include "../include/cxx_exec/unix/ipstream.hpp"
+#include "cxx_exec/ext/exec.cpp"
+#include "cxx_exec/unix/ipstream.hpp"
 #include <assert.h>
-#include <string>
-#include <vector>
-
-using namespace std;
 
 void exec(vector<string> args) {
     assert(args.size()>0);
@@ -18,7 +15,7 @@ void exec(vector<string> args) {
     cout << "using << operator:\n";
     unix::ipstream s1{args[0]};
     while(s1) {
-		std::string str;
+		string str;
 		s1 >> str;
 		cout << str << "\n";
 	}

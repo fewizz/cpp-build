@@ -5,9 +5,9 @@
 #include "../gcc_like_driver.hpp"
 #include <string_view>
 
-struct static_lib_accessor : shared_lib_accessor {
+struct build_accessor : shared_lib_accessor {
 
-    static_lib_accessor(shared_lib_accessor&& shared_accessor)
+    build_accessor(shared_lib_accessor&& shared_accessor)
     : shared_lib_accessor(std::move(shared_accessor)) {}
 
     std::string_view name() {

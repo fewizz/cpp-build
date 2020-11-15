@@ -67,8 +67,15 @@ int main(int argc, char* argv[]) {
     if(not compile_only) {
         try {
             auto lib = environment::load_shared_library(output_path);
-            int off = std::distance(args.begin(), delimiter);
-            lib.run<int(int, char*[])>("main", argc - off, argv + off);
+
+            int operators = 0;
+
+            if(delimiter != args.end()) {
+                int delemiter_index = std::distance(args.begin(), delimiter);
+                operators = args.size() - (delemiter_index + 1);
+            }
+            
+            lib.run<int(int, char*[])>("main", operators, argv + argc - operators);
         } catch(...) {}
     }
 
