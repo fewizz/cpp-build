@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <iostream>
 #include "shared_lib_accessor.hpp"
-#include "update_need_checker.hpp"
+#include "unc/by_dependencies_date.hpp"
 
 using namespace std;
 using namespace filesystem;
@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
         .shared(true)
         .position_independent_code(true);
     try {
-        if(by_deps_date(cc, cxx, output_path) ()) {
+        if(by_dependencies_date(cc, cxx, output_path) ()) {
             if(verbose) {
                 cout << "cxx outdated, recompiling\n" << flush;
                 cc.verbose(verbose);

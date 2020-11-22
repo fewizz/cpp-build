@@ -1,18 +1,5 @@
-#include <filesystem>
-#include <functional>
-#include <stdexcept>
-#include <stdlib.h>
-#include <string_view>
-#include <vector>
-#include <string>
-#include "../configuration.hpp"
-#include "../ar.hpp"
-#include "clap/gnu_clap.hpp"
-#include "../environment.hpp"
-#include "../gcc_like_driver.hpp"
-#include "../update_need_checker.hpp"
-
 #include "build_base.cpp"
+#include "clap/gnu_clap.hpp"
 
 on_startup __static_lib() {
     output_extension = ".a";

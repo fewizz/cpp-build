@@ -2,7 +2,6 @@
 #include "../gcc_like_driver.hpp"
 #include <iostream>
 #include "../environment.hpp"
-#include "../update_need_checker.hpp"
 #include "../ar.hpp"
 
 #include "log"
@@ -38,13 +37,14 @@ static function<path()> output_path_provider = [](){ return output_dir/(string{n
 static gcc_like_driver::command_builder cc = environment::cxx_compile_command_builder();
 static function<void(vector<string_view>)> args_parser;
 
+#include "../unc/deep.hpp"
 std::function<update_need_checker(
     const gcc_like_driver::command_builder&,
     const path&,
     const path&
 )> update_need_checker_provider =
     [](const gcc_like_driver::command_builder& cc, const path& src, const path& out) {
-        return by_deps_date(cc, src, out);
+        return deep(cc, src, out, path{out}.replace_extension(".json"));
     };
 
 function<void()> before_build;

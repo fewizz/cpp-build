@@ -1,8 +1,8 @@
 #include "cxx_exec/ext/static_lib"
 
-const char* name() { return "code"; }
+string_view name() { return "code"; }
 vector<path> sources() { return { "code.cpp" }; }
 
-void configure(gnu::clap& clap, command_builder& cc) {
+on_startup configure() {
     cc.include("include");
 }
