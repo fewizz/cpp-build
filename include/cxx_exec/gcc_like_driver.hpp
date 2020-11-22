@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <initializer_list>
 #include <optional>
@@ -134,6 +135,10 @@ public:
     command_builder(string_view name, const lang_std& std)
         :name{name}, m_std{std.name}{}
 
+    std::string program() const {
+        return name;
+    }
+
     auto& std(const gcc_like_driver::lang_std& std) {
         m_std = std.name; return *this;
     }
@@ -230,14 +235,8 @@ public:
     }
 
     cmd::command make_rule_creation(const initializer_list<path>& inputs) const { return _mrc(inputs); }
-
     cmd::command make_rule_creation(const ranges::range auto& inputs) const { return _mrc(inputs); }
-protected:
-    cmd::command _mrc(const ranges::range auto& inputs) const {
-        auto args = args_to_string_vec(inputs, std::nullopt, std::nullopt);
-        args.push_back("-M");
-        return {name, args};
-    }
+    cmd::command make_rule_creation(const path& path) const { return _mrc(std::array{path}); }
 
     vector<string> args_to_string_vec(
         const ranges::range auto& inputs,
@@ -279,6 +278,13 @@ protected:
             args.emplace_back("-l"+lib);
 
         return args;
+    }
+    
+protected:
+    cmd::command _mrc(const ranges::range auto& inputs) const {
+        auto args = args_to_string_vec(inputs, std::nullopt, std::nullopt);
+        args.push_back("-M");
+        return {name, args};
     }
 };
 

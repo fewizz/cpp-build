@@ -2,8 +2,6 @@
 
 #include <ios>
 #include <string>
-#include <iostream>
-#include <fstream>
 #include <stdio.h>
 #include "../command.hpp"
 
@@ -71,6 +69,8 @@ struct basic_ipstream : std::basic_istream<CharT, Traits> {
     {
         std::basic_ios<char>::init(&filebuf);
     }
+
+    
 };
 
 using ipstream = basic_ipstream<char>;

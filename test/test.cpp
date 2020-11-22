@@ -6,7 +6,7 @@
 
 using namespace environment;
 
-test unix_pipe() {
+on_test unix_pipe() {
     info("executing ls");
 
     change_dir("unix", []() {

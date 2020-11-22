@@ -44,7 +44,7 @@ std::function<update_need_checker(
     const path&
 )> update_need_checker_provider =
     [](const gcc_like_driver::command_builder& cc, const path& src, const path& out) {
-        return if_outdated_by_date_make(cc, src, out);
+        return by_deps_date(cc, src, out);
     };
 
 function<void()> before_build;
@@ -66,13 +66,11 @@ void build() {
         path object_path = object_dir_provider()/source_path.filename().replace_extension(".o");
         create_directories(object_dir_provider());
 
+        cmd::command compilation_command = cc.compilation_of(source_path).to_object(object_path);
+
         if(update_need_checker_provider(cc, source_path, object_path) () ) {
             info("compile " + source_path.string());
-
-            environment::execute(
-                cc.compilation_of(source_path).to_object(object_path)
-            );
-
+            environment::execute(compilation_command);
             updated_objects.push_back(object_path);
         }
 

@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
         .shared(true)
         .position_independent_code(true);
     try {
-        if(if_outdated_by_date_make(cc, cxx, output_path) ()) {
+        if(by_deps_date(cc, cxx, output_path) ()) {
             if(verbose) {
                 cout << "cxx outdated, recompiling\n" << flush;
                 cc.verbose(verbose);

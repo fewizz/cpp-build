@@ -51,6 +51,11 @@ public:
     std::string string() const {
         return m_command;
     }
+
+    std::string program() const {
+        std::string c = string();
+        return c.substr(0, c.find(' '));
+    }
 };
 
 }

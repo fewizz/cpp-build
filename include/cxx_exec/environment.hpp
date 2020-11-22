@@ -33,6 +33,10 @@ inline void execute(cmd::command c) {
     process(c);
 }
 
+inline unix::ipstream open_pipe(cmd::command c) {
+    return unix::ipstream{c};
+}
+
 #include <io.h>
 
 inline void change_dir(std::filesystem::path dir) {
