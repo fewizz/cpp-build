@@ -45,8 +45,6 @@ inline update_need_checker deep(
     
             json_out["deps"] = json_deps;
 
-            //path dep_info_p{dep_info};
-            //if(not dep_info_p.has_extension()) dep_info_p.replace_extension(".json");
             ofstream{dep_info} << setw(4) << json_out << endl;
         };
 
