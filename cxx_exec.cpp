@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
         output_path.replace_extension(environment::shared_lib_extension);
 
     if(verbose)
-        cout << "output path: "+output_path.string()+"\n" << flush;
+        cout << "output path: "+output_path.string() << endl;
 
     auto cc = environment::cxx_compile_command_builder()
         .std(std.empty() ? "c++20" : std)
@@ -57,10 +57,13 @@ int main(int argc, char* argv[]) {
     try {
         if(by_dependencies_date(cc, cxx, output_path) ()) {
             if(verbose) {
-                cout << "cxx outdated, recompiling\n" << flush;
+                cout << "cxx outdated, recompiling" << endl;
                 cc.verbose(verbose);
             }
-            environment::execute(cc.compilation_of(cxx).to(output_path));
+            auto compilation_command = cc.compilation_of(cxx).to(output_path);
+            if(verbose)
+                cout << "compilation command: " << compilation_command.string() << endl;
+            environment::execute(compilation_command);
         }
     } catch(...) { return EXIT_FAILURE; }
 
