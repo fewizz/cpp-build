@@ -3,12 +3,30 @@
 #include "by_dependencies_date.hpp"
 #include "nlohmann/json.hpp"
 #include "fstream"
+#include <filesystem>
+#include <functional>
+#include <unordered_map>
 
-#include <iostream>
+inline auto for_each_hash(
+    const std::ranges::range auto& r,
+    std::function<void(const std::filesystem::path&, std::string)> handler
+){
+    cmd::command c{"sha256sum", r};
+    c.append_arg("| cut -d \" \" -f 1");
+
+    auto pipe = environment::open_pipe(c);
+
+    for(const auto& p : r) {
+        std::string hash;
+        pipe >> hash;
+
+        handler(p, std::move(hash));
+    }
+}
 
 inline std::string hash_of_file(std::filesystem::path file) {
     std::string hash;
-    cmd::command c{"sha256sum", file.string()};
+    cmd::command c{"sha256sum", file.string(), "| cut -d \" \" -f 1"};
     environment::open_pipe(c) >> hash;
     return hash;
 }
@@ -31,7 +49,7 @@ inline update_need_checker deep(
 
         string compiler_hash = hash_of_file(exec_path);
 
-        std::vector<path> deps = dependencies(src, cc);
+        vector<path> deps = dependencies(src, cc);
 
         auto write = [&](){
             json json_out;
@@ -39,9 +57,10 @@ inline update_need_checker deep(
             json_out["command"] = compilation_command;
     
             json json_deps;
-    
-            for(auto& dep : deps)
-                json_deps[dep.string()] = hash_of_file(dep);
+
+            for_each_hash(deps, [&](const path& dep, string hash) {
+                json_deps[dep.string()] = hash;
+            });
     
             json_out["deps"] = json_deps;
 
@@ -57,7 +76,7 @@ inline update_need_checker deep(
         ifstream{dep_info} >> json_in;
 
         json json_deps = json_in["deps"];
-        for(auto& dep : deps) {
+        for(const auto& dep : deps) {
             if(
                 not json_deps.contains(dep.string())
                 or

@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <type_traits>
 #include <utility>
+#include <cstring>
 
 namespace string_util {
 
@@ -78,7 +79,7 @@ namespace string_util {
         auto to_string_view_or_string(const T& value) {
             if constexpr(is_convertible_to_string_view_v<T>)
                 return to_string_view(value);
-            else if(is_convertible_to_string_v<T>)
+            else if constexpr(is_convertible_to_string_v<T>)
                 return to_string(value);
             else return;
         }
@@ -89,7 +90,7 @@ namespace string_util {
         convertible_to_string_view<T> or convertible_to_string<T>;
 
     template<convertible_to_string_view_or_string T>
-    std::string_view to_string_view_or_string(const T& value) {
+    auto to_string_view_or_string(const T& value) {
         return internal::to_string_view_or_string(value);
     }
 
@@ -119,7 +120,7 @@ namespace string_util {
             if constexpr(sizeof...(Strs) == 0)
                 return move(res);
             else
-                return join(move(res), strs...);
+                return join(delimiter, move(res), strs...);
         }
     }
 
@@ -156,7 +157,7 @@ namespace string_util {
         std::string res;
         res.reserve(size(delimiter, range));
 
-        res += *ranges::begin(range);
+        res += to_string_view_or_string(*ranges::begin(range));
 
         for(const auto& elem : range | std::ranges::views::drop(1)) {
             res += delimiter;

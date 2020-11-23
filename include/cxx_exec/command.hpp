@@ -39,6 +39,11 @@ public:
     std::string program() const {
         return m_command.substr(0, m_command.find(' '));
     }
+
+    void append_arg(const auto& a) {
+        m_command += ' ';
+        m_command += string_util::to_string_view_or_string(a);
+    }
 };
 
 }
