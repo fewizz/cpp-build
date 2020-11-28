@@ -1,23 +1,14 @@
 #include <filesystem>
-#include "../gcc_like_driver.hpp"
+#include "../cb/gcc_like_driver.hpp"
 #include <iostream>
 #include "../environment.hpp"
-#include "../ar.hpp"
-
-#include "log"
+#include "../cb/ar.hpp"
+#include "named_log.cpp"
 
 using namespace std;
 using namespace filesystem;
 using namespace gcc_like_driver;
-
-#define on_startup __attribute__((constructor)) void
-
-string_view name();
 extern "C" void build();
-
-on_startup __build_base() {
-    log_formatter = [](const string& message) { return "["+string{name()}+"] " + message; };
-}
 
 using sources_t =
     vector<variant<
@@ -48,6 +39,7 @@ std::function<update_need_checker(
     };
 
 function<void()> before_build;
+function<void()> after_build;
 output_type* __output_type;
 function<void(const vector<path>& objects, vector<path>& updated_objects)> __after_build;
 
@@ -82,4 +74,5 @@ void build() {
         return ;
     }
     __after_build(objects, updated_objects);
+    if(after_build) after_build();
 }

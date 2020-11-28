@@ -10,15 +10,13 @@
 #include <type_traits>
 #include <variant>
 #include <ranges>
+#include <vector>
 
 namespace gcc_like_driver {
 
-using namespace std;
-using namespace filesystem;
-
 struct input_type_t {
-    string_view name;
-    constexpr input_type_t(const string_view name):name{name}{}
+    std::string_view name;
+    constexpr input_type_t(const std::string_view name):name{name}{}
 };
 
 struct input_type:input_type_t {
@@ -31,8 +29,8 @@ struct input_type:input_type_t {
 };
 
 constexpr struct lang_std_t {
-    string_view name;
-    constexpr lang_std_t(const string_view name):name{name}{}
+    std::string_view name;
+    constexpr lang_std_t(const std::string_view name):name{name}{}
 }
 c89{"c89"}, c94{"iso9899:199409"}, gnu89{"gnu89"},
 c99{"c99"}, gnu99{"gnu99"}, c11{"c11"}, gnu11{"gnu11"},
@@ -57,8 +55,8 @@ struct lang_std:lang_std_t {
     cxx20{gcc_like_driver::cxx20}, gnucxx20{gcc_like_driver::gnucxx20};
 };
 
-constexpr struct output_type_t : string_view {
-    constexpr output_type_t(const auto option):string_view(option){}
+constexpr struct output_type_t : std::string_view {
+    constexpr output_type_t(const auto option):std::string_view(option){}
 }
 def{""},
 object_file{"c"},
@@ -76,8 +74,8 @@ struct output_type:output_type_t {
 };
 
 constexpr struct debug_information_type_t {
-    string_view option;
-    constexpr debug_information_type_t(const string_view option):option{option}{}
+    std::string_view option;
+    constexpr debug_information_type_t(const std::string_view option):option{option}{}
 }
 native{"g"}, gdb{"ggdb"}, dwarf{"gdwarf"},
 stabs{"gstabs"}, xcoff{"gxcoff"}, vms{"gvms"};
@@ -91,6 +89,12 @@ struct debug_information_type:debug_information_type_t {
 };
 
 struct command_builder {
+    using string = std::string;
+    using string_view = std::string_view;
+    using path = std::filesystem::path;
+    template<class T> using initializer_list = std::initializer_list<T>;
+    template<class T> using optional = std::optional<T>;
+    template<class T> using vector = std::vector<T>;
 protected:
     string name;
 
@@ -167,7 +171,7 @@ public:
         return *this;    
     }
 
-    template<ranges::range R>
+    template<std::ranges::range R>
     requires std::is_same_v<std::remove_cvref_t<std::ranges::range_value_t<R>>, std::filesystem::path>
     auto& include(const R& range) {
         for(const auto& v : range) include_paths.push_back(v); return *this;
@@ -217,7 +221,7 @@ public:
         return compilation_to<vector<path>>{*this, {src} };
     }
 
-    auto compilation_of(const ranges::range auto& inputs) const {
+    auto compilation_of(const std::ranges::range auto& inputs) const {
         return compilation_to<decltype(inputs)>{*this, inputs};
     }
 
@@ -230,16 +234,16 @@ public:
         return {name, args_to_string_vec(inputs, ot, out)};
     }
 
-    cmd::command compilation(const ranges::range auto& inputs, const output_type_t& ot, const path& out) const {
+    cmd::command compilation(const std::ranges::range auto& inputs, const output_type_t& ot, const path& out) const {
         return {name, args_to_string_vec(inputs, ot, out)};
     }
 
     cmd::command make_rule_creation(const initializer_list<path>& inputs) const { return _mrc(inputs); }
-    cmd::command make_rule_creation(const ranges::range auto& inputs) const { return _mrc(inputs); }
+    cmd::command make_rule_creation(const std::ranges::range auto& inputs) const { return _mrc(inputs); }
     cmd::command make_rule_creation(const path& path) const { return _mrc(std::array{path}); }
 
     vector<string> args_to_string_vec(
-        const ranges::range auto& inputs,
+        const std::ranges::range auto& inputs,
         const std::optional<output_type> ot,
         const std::optional<path> output
     ) const {
@@ -281,7 +285,7 @@ public:
     }
     
 protected:
-    cmd::command _mrc(const ranges::range auto& inputs) const {
+    cmd::command _mrc(const std::ranges::range auto& inputs) const {
         auto args = args_to_string_vec(inputs, std::nullopt, std::nullopt);
         args.push_back("-M");
         return {name, args};

@@ -58,9 +58,11 @@ inline update_need_checker deep(
     
             json json_deps;
 
-            for_each_hash(deps, [&](const path& dep, string hash) {
-                json_deps[dep.string()] = hash;
-            });
+            //for_each_hash(deps, [&](const path& dep, string hash) {
+            //    json_deps[dep.string()] = hash;
+            //});
+            for(const auto& dep : deps)
+                json_deps[dep.string()] = hash_of_file(dep);
     
             json_out["deps"] = json_deps;
 

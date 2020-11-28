@@ -1,3 +1,4 @@
 test/**/build/
+/build/
 test/**/*.json
 *.dll

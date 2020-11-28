@@ -14,13 +14,10 @@
 
 namespace ar {
 
-using namespace std;
-using namespace filesystem;
-
 struct operation_t {
 	char code;
-	vector<char> modifiers;
-	string relpos;
+	std::vector<char> modifiers;
+	std::string relpos;
 	int m_count = -1;
 
 	auto create_if_not_exists() { modifiers.push_back('c'); return *this; }
@@ -33,8 +30,8 @@ struct operation_t {
 	auto truncate_names() { modifiers.push_back('f'); return *this; }
 	auto preserve_original_dates() { modifiers.push_back('o'); return *this; }
 protected:
-	auto after(string mem) { modifiers.push_back('a'); relpos = mem; return *this; }
-	auto before(string mem) { modifiers.push_back('b'); relpos = mem; return *this; }
+	auto after(std::string mem) { modifiers.push_back('a'); relpos = mem; return *this; }
+	auto before(std::string mem) { modifiers.push_back('b'); relpos = mem; return *this; }
 	auto count(int v) { m_count = v; return *this; }
 };
 
@@ -67,29 +64,30 @@ struct insert : operation_t {
 };
 
 struct command_builder {
+	using path = std::filesystem::path;
     path archive;
-	unique_ptr<operation_t> operation;
-    vector<path> m_members;
+	std::unique_ptr<operation_t> operation;
+    std::vector<path> m_members;
 
 	template<class Op>
 	command_builder(path archive, Op operation)
 	:archive{archive}, operation{make_unique<operation_t>(operation)} {}
 
-	auto& members(initializer_list<path> ms) {
+	auto& members(std::initializer_list<path> ms) {
 		m_members.insert(m_members.end(), ms);
 		return *this;
 	}
 
-	template<ranges::range R>
+	template<std::ranges::range R>
 	auto& members(const R& ms) {
 		m_members.insert(m_members.end(), ms.begin(), ms.end());
 		return *this;
 	}
 
     operator cmd::command() {
-        vector<string> args;
+        std::vector<std::string> args;
         
-		string res{"-"};
+		std::string res{"-"};
 		res += operation->code;
 
         for(auto m : operation->modifiers)
@@ -99,7 +97,7 @@ struct command_builder {
 		if(not operation->relpos.empty())
 			args.push_back(operation->relpos);
 		if(operation->m_count != -1)
-			args.push_back(to_string(operation->m_count));
+			args.push_back(std::to_string(operation->m_count));
         
 		args.push_back(archive.string());
 
