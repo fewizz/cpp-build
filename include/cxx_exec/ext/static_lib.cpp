@@ -3,6 +3,7 @@
 
 on_startup __static_lib() {
     output_extension = ".a";
+    output_prefix = "lib";
 
     __after_build = [](const vector<path>& objects, vector<path>& updated_objects) {
         info("create thin static lib");

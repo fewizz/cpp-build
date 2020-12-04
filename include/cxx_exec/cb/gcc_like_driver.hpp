@@ -5,7 +5,7 @@
 #include <initializer_list>
 #include <optional>
 #include <set>
-#include "command.hpp"
+#include "../command.hpp"
 #include <string_view>
 #include <type_traits>
 #include <variant>
@@ -111,6 +111,7 @@ protected:
     vector<path> include_paths;         // -Idir
     vector<path> include_quote_paths;   // -iquote dir
     vector<string> m_libs;
+    vector<path> m_lib_paths;
 public:
 
     struct definition_t {
@@ -162,6 +163,15 @@ public:
 
     auto& libs(initializer_list<string_view>&& ins) {
         for(auto l : ins) lib(l); return *this;
+    }
+
+    auto& libs(std::ranges::range auto& libs) {
+        for(auto l : libs) lib(l); return *this;
+    }
+
+    auto& lib_paths(std::ranges::range auto& paths) {
+        for(auto p : paths) m_lib_paths.push_back(p);
+        return *this;
     }
 
     auto& include(const path& p) { include_paths.push_back(p); return *this; }
@@ -277,7 +287,10 @@ public:
         
         for(auto& input : inputs)
             args.emplace_back(input.string());
-        
+
+        for(auto& lib_p : m_lib_paths)
+            args.emplace_back("-L"+lib_p.string());
+
         for(auto& lib : m_libs)
             args.emplace_back("-l"+lib);
 

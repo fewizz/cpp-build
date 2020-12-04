@@ -2,6 +2,10 @@
 #include "cxx_exec/unix/ipstream.hpp"
 #include <assert.h>
 
+#include <iostream>
+
+using namespace std;
+
 void exec(vector<string> args) {
     assert(args.size()>0);
 

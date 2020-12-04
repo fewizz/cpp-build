@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <vector>
 #include <set>
-#include "command.hpp"
+#include "../command.hpp"
 #include <ranges>
 #include <iterator>
 

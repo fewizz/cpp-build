@@ -4,6 +4,7 @@
 #include <clap/parser.hpp>
 #include <filesystem>
 #include <algorithm>
+#include <iterator>
 #include <stdexcept>
 #include <unistd.h>
 #include <iostream>
@@ -29,12 +30,16 @@ int main(int argc, char* argv[]) {
     string std;
     path output_path;
     auto delimiter = find(args.begin() + 1, args.end(), "--");
+    vector<string> lib_paths;
+    vector<string> libs;
 
     gnu::clap{}
         .flag('v', "verbose", verbose)
         .flag('c', "compile-only", compile_only)
         .value('o', "output", output_path)
         .value('s', "standard", std)
+        .values<string>('L', "lib-path", std::back_inserter( lib_paths ))
+        .values<string>('l', "lib", std::back_inserter( libs ))
         .parse(args.begin() + 1, delimiter);
 
     bool output_is_temp = output_path.empty();
@@ -53,11 +58,13 @@ int main(int argc, char* argv[]) {
         .std(std.empty() ? "c++20" : std)
         .debug(native)
         .shared(true)
-        .position_independent_code(true);
+        .position_independent_code(true)
+        .lib_paths(lib_paths)
+        .libs(libs);
     try {
-        if(by_dependencies_date(cc, cxx, output_path) ()) {
+        if(output_is_temp or by_dependencies_date(cc, cxx, output_path) () ) {
             if(verbose) {
-                cout << "cxx outdated, recompiling" << endl;
+                cout << "compiling" << endl;
                 cc.verbose(verbose);
             }
             auto compilation_command = cc.compilation_of(cxx).to(output_path);

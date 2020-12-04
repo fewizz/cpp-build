@@ -1,3 +1,3 @@
 #pragma once
 
-#define on_startup __attribute__((constructor)) void
+#define on_startup [[gnu::constructor]] void

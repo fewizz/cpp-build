@@ -47,17 +47,16 @@ inline void change_dir(std::filesystem::path dir) {
 }
 
 inline void change_dir(std::filesystem::path dir, std::function<void()> fun) {
-    auto prev = getcwd(nullptr, 0);
+    struct on_deconst {
+        char* prev;
+        ~on_deconst() {
+            change_dir(prev);
+            free(prev);
+        }
+    } handle{getcwd(nullptr, 0)};
 
-    try {
-        change_dir(dir);
-        fun();
-        change_dir(prev);
-    }
-    catch(...) {
-        free(prev);
-        throw;
-    }
+    change_dir(dir);
+    fun();
 }
 
 inline shared_lib_accessor load_shared_library(const std::filesystem::path& path) {

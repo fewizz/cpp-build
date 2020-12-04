@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <optional>
 #include <vector>
-#include "command.hpp"
+#include "../command.hpp"
 
 namespace cxx_exec {
 

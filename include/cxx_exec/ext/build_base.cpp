@@ -23,7 +23,8 @@ extern "C" const char* __name() { return name().data(); }
 static path output_dir = "build";
 static function<path()> object_dir_provider = [](){ return output_dir/"object"; };
 static string output_extension;
-static function<path()> output_path_provider = [](){ return output_dir/(string{name()} + output_extension); };
+static string output_prefix;
+static function<path()> output_path_provider = [](){ return output_dir/(output_prefix + string{name()} + output_extension); };
 
 static gcc_like_driver::command_builder cc = environment::cxx_compile_command_builder();
 static function<void(vector<string_view>)> args_parser;
