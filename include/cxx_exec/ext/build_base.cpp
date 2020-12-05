@@ -45,7 +45,7 @@ output_type* __output_type;
 function<void(const vector<path>& objects, vector<path>& updated_objects)> __after_build;
 
 int main(int argc, char* argv []) {
-    if(args_parser) args_parser(vector<string_view> {argv, argv + argc});
+    if(args_parser) args_parser(vector<string_view> {argv + 1, argv + argc - 1});
     build();
 }
 

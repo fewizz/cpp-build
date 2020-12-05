@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <unistd.h>
 #include <iostream>
@@ -16,20 +17,18 @@ using namespace filesystem;
 using namespace gcc_like_driver;
 
 int main(int argc, char* argv[]) {
-    argv++; argc--;
-
     vector<string_view> args{argv, argv + argc};
 
-    if (args.empty())
-        throw runtime_error("c++ file not provided");
+    if (args.size() < 1)
+        throw runtime_error("c++ file is not provided");
 
-    path cxx = absolute(args.front());
+    path cxx = absolute(args[1]);
     if(not exists(cxx)) throw runtime_error("c++ file '"+cxx.string()+"' doesn't exists");
 
     bool verbose = false, compile_only = false;
     string std;
     path output_path;
-    auto delimiter = find(args.begin() + 1, args.end(), "--");
+    auto delimiter = std::ranges::find(args, "--");
     vector<string> lib_paths;
     vector<string> libs;
 
@@ -40,7 +39,7 @@ int main(int argc, char* argv[]) {
         .value('s', "standard", std)
         .values<string>('L', "lib-path", std::back_inserter( lib_paths ))
         .values<string>('l', "lib", std::back_inserter( libs ))
-        .parse(args.begin() + 1, delimiter);
+        .parse(args.begin() + 2, delimiter);
 
     bool output_is_temp = output_path.empty();
 
@@ -76,16 +75,22 @@ int main(int argc, char* argv[]) {
 
     if(not compile_only) {
         try {
-            auto lib = environment::load_shared_library(output_path);
-
-            int operators = 0;
+            vector<char*> program_args;
+            auto output_path_str = output_path.string();
+            program_args.emplace_back(output_path_str.data());
 
             if(delimiter != args.end()) {
                 int delemiter_index = std::distance(args.begin(), delimiter);
-                operators = args.size() - (delemiter_index + 1);
+                int args_begin_index = delemiter_index + 1;
+                program_args.insert(program_args.end(), argv + args_begin_index, argv + argc);
             }
             
-            lib.run<int(int, char*[])>("main", operators, argv + argc - operators);
+            environment::load_shared_library(output_path)
+                .run<int(int, char*[])>(
+                    "main",
+                    program_args.size(),
+                    program_args.data()
+                );
         } catch(...) {}
     }
 
